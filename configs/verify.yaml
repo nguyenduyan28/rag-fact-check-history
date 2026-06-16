@@ -1,0 +1,13 @@
+paths:
+  input_retrieved: data/outputs/retrieved/hybrid_top5.json
+  output_verified: data/outputs/verified/hybrid_top5_verified.json
+
+openai:
+  model_env: OPENAI_MODEL
+  default_model: gpt-4o-mini
+  temperature: 0.0
+  max_tokens: 350
+
+verification:
+  top_k_context: 3
+  max_chars_per_doc: 2500

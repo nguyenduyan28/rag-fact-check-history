@@ -1,0 +1,18 @@
+paths:
+  corpus_dir: data/corpus
+  input_claims: data/claims/final_dataset.json
+  output_retrieved: data/outputs/retrieved/hybrid_top5.json
+
+models:
+  embedding: BAAI/bge-m3
+  device: auto
+
+retrieval:
+  method: hybrid
+  bm25_top_k: 20
+  dense_top_k: 20
+  rrf_k: 60
+  final_top_k: 5
+  query_fields:
+    - key
+    - claim

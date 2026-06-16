@@ -1,0 +1,14 @@
+paths:
+  corpus_dir: data/corpus
+  graph_output: data/outputs/graph/graph.json
+
+graph:
+  entity_types:
+    - person
+    - organization
+    - event
+    - place
+    - time
+    - strategy
+    - impact
+  relation_type: RELATE_TO
