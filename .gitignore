@@ -3,6 +3,3 @@
 __pycache__/
 *.pyc
 .DS_Store
-data/outputs/retrieved/*.json
-data/outputs/verified/*.json
-data/outputs/reports/*.txt

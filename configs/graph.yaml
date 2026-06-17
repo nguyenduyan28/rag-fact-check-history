@@ -1,14 +1,46 @@
 paths:
   corpus_dir: data/corpus
-  graph_output: data/outputs/graph/graph.json
+  cleaned_chunks: data/outputs/corpus/chunks.json
+  corpus_report: data/outputs/reports/corpus_cleaning_report.md
+  graph_schema: docs/graph_schema.md
+  extracted_chunks: data/outputs/graph/extracted_chunks.json
+  extraction_errors: data/outputs/graph/extraction_errors.json
+  entities_aligned: data/outputs/graph/entities_aligned.json
+  entity_aliases: data/outputs/graph/entity_aliases.json
+  graph_nodes: data/outputs/graph/graph_nodes.json
+  graph_edges: data/outputs/graph/graph_edges.json
+  history_graph: data/outputs/graph/history_graph.json
+  temporal_index: data/outputs/graph/temporal_index.json
+  parsed_claims: data/outputs/claims/parsed_claims.json
+  graph_topk: data/outputs/retrieved/graph_topk.json
+  graph_hybrid_topk: data/outputs/retrieved/graph_hybrid_topk.json
+  graph_verified: data/outputs/verified/graph_hybrid_verified.json
 
-graph:
-  entity_types:
-    - person
-    - organization
-    - event
-    - place
-    - time
-    - strategy
-    - impact
-  relation_type: RELATE_TO
+corpus_cleaning:
+  unicode_form: NFC
+  normalize_whitespace: true
+  min_chars: 80
+  keep_original_txt: true
+  include_prev_next_pages: true
+  chunk_id_template: "{book}_p{page}"
+
+schema:
+  node_types:
+    - DocumentChunk
+    - Person
+    - Organization
+    - Event
+    - Place
+    - Time
+    - Concept
+  edge_types:
+    - MENTIONS
+    - PARTICIPATED_IN
+    - OCCURRED_AT
+    - LOCATED_IN
+    - RELATED_TO
+    - CAUSES
+    - RESULTS_IN
+    - BEFORE
+    - AFTER
+    - SUPPORTED_BY

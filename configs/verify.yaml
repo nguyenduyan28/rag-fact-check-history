@@ -11,3 +11,5 @@ openai:
 verification:
   top_k_context: 3
   max_chars_per_doc: 2500
+  workers: 4
+  checkpoint_every: 25

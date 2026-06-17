@@ -1,0 +1,199 @@
+# TODO: From Current RAG Repo To GraphRAG
+
+Use this as the working checklist. Do the stages in order. Do not jump to GraphRAG before the text RAG baseline is measured.
+
+## Stage 1: Text RAG Baseline
+
+- [x] Install dependencies with `pip install -r requirements.txt`.
+- [x] Create `.env` from `.env.example` and add `OPENAI_API_KEY`.
+- [x] Run hybrid retrieval with `python3 -m src.rag.retrieve --config configs/rag.yaml`.
+- [x] Check output exists at `data/outputs/retrieved/hybrid_top5.json`.
+- [x] Run verifier with `python3 -m src.rag.verify --config configs/verify.yaml`.
+- [x] Check output exists at `data/outputs/verified/hybrid_top5_verified.json`.
+- [x] Run evaluation with `python3 -m src.rag.evaluate --config configs/eval.yaml`.
+- [x] Save baseline numbers: accuracy, macro F1, real recall, fake recall, false real, false fake.
+
+Goal: know how good plain hybrid text RAG is before GraphRAG.
+
+## Stage 2: Baseline Error Analysis
+
+- [x] Sample fake claims predicted as `real`.
+- [x] Sample real claims predicted as `fake`.
+- [x] Check whether retrieved chunks actually contain the needed evidence.
+- [x] Check if failures are caused by wrong dates.
+- [x] Check if failures are caused by wrong people, places, or organizations.
+- [x] Check if failures are caused by broad/topically related but non-decisive chunks.
+- [x] Check if failures are caused by OCR noise.
+- [x] Write short notes in `data/outputs/reports/error_notes.md`.
+
+Goal: identify which failures GraphRAG should fix.
+
+## Stage 3: Corpus Cleaning
+
+- [ ] Update `configs/graph.yaml` with Stage 3-12 paths and corpus-cleaning options.
+- [ ] Create `src/graph_rag/clean_corpus.py` using `configs/graph.yaml`.
+- [ ] Normalize Unicode for all corpus chunks.
+- [ ] Normalize whitespace and broken line breaks.
+- [ ] Remove very short or garbage chunks.
+- [ ] Keep metadata for every chunk: `chunk_id`, `book`, `page`, `source`, `text`.
+- [ ] Add trace metadata where useful: `char_count`, `year_mentions`, `prev_chunk_id`, `next_chunk_id`.
+- [ ] Save cleaned corpus metadata to `data/outputs/corpus/chunks.json`.
+- [ ] Save cleaning summary to `data/outputs/reports/corpus_cleaning_report.md`.
+- [ ] Keep original `.txt` files unchanged.
+- [ ] Inspect a sample of cleaned chunks from grades 10, 11, and 12.
+
+Goal: have clean, traceable chunks for both RAG and GraphRAG.
+
+## Stage 4: Decide Graph Schema
+
+- [ ] Create `docs/graph_schema.md`.
+- [ ] Keep `docs/graph_schema.md` aligned with `configs/graph.yaml` schema fields.
+- [ ] Define node types: `DocumentChunk`, `Person`, `Organization`, `Event`, `Place`, `Time`, `Concept`.
+- [ ] Define edge types: `MENTIONS`, `PARTICIPATED_IN`, `OCCURRED_AT`, `LOCATED_IN`, `RELATED_TO`, `CAUSES`, `RESULTS_IN`, `BEFORE`, `AFTER`, `SUPPORTED_BY`.
+- [ ] Define required node fields: `id`, `type`, `name`, `aliases`, `description`, `years`, `source_chunks`.
+- [ ] Define required edge fields: `source`, `target`, `type`, `description`, `source_chunk`, `confidence`.
+
+Goal: lock the graph format before extraction starts.
+
+## Stage 5: Entity/Event/Time Extraction
+
+- [ ] Write an extraction prompt for one textbook chunk.
+- [ ] Extract people, organizations, events, places, concepts, and time expressions.
+- [ ] Extract relations between them.
+- [ ] Force valid JSON output.
+- [ ] Add retry logic for invalid JSON.
+- [ ] Add checkpointing so extraction can resume.
+- [ ] Run extraction on a small sample of 10 chunks first.
+- [ ] Manually inspect sample extraction quality.
+- [ ] Run extraction on all 591 chunks.
+- [ ] Save output to `data/outputs/graph/extracted_chunks.json`.
+- [ ] Save failures to `data/outputs/graph/extraction_errors.json`.
+
+Goal: convert textbook chunks into structured historical facts.
+
+## Stage 6: Entity Alignment
+
+- [ ] Collect all extracted entities into `entities_raw.json`.
+- [ ] Normalize names: lowercase, Unicode NFC, punctuation cleanup.
+- [ ] Add manual alias rules for common names.
+- [ ] Merge obvious aliases like `Mỹ`, `Mĩ`, `Hoa Kỳ`.
+- [ ] Merge obvious aliases like `Liên Xô`, `Liên bang Xô viết`.
+- [ ] Merge obvious aliases like `Nguyễn Ái Quốc`, `Hồ Chí Minh` when historically appropriate.
+- [ ] Use embedding or LLM review for uncertain duplicates.
+- [ ] Save final aligned entities to `data/outputs/graph/entities_aligned.json`.
+- [ ] Save alias map to `data/outputs/graph/entity_aliases.json`.
+
+Goal: avoid duplicated graph nodes for the same historical entity.
+
+## Stage 7: Build Graph
+
+- [ ] Build `DocumentChunk` nodes from cleaned corpus chunks.
+- [ ] Build entity/event/time/place/concept nodes from aligned extraction output.
+- [ ] Build edges from extracted relations.
+- [ ] Add `MENTIONS` edges from chunks to entities/events.
+- [ ] Add `source_chunk` to every edge.
+- [ ] Add year metadata to event/time nodes.
+- [ ] Save nodes to `data/outputs/graph/graph_nodes.json`.
+- [ ] Save edges to `data/outputs/graph/graph_edges.json`.
+- [ ] Save combined graph to `data/outputs/graph/history_graph.json`.
+- [ ] Start with JSON or NetworkX, not Neo4j.
+
+Goal: create a debuggable graph before adding graph retrieval.
+
+## Stage 8: Temporal Index
+
+- [ ] Extract years from every graph node description.
+- [ ] Extract years from every graph edge description.
+- [ ] Extract years from every chunk text.
+- [ ] Store node-to-year mappings.
+- [ ] Store chunk-to-year mappings.
+- [ ] Save to `data/outputs/graph/temporal_index.json`.
+
+Goal: support history-specific retrieval by time.
+
+## Stage 9: Claim Parser
+
+- [ ] Extract years from `key + claim`.
+- [ ] Extract entity candidates from `key + claim`.
+- [ ] Normalize claim entities using the alias map.
+- [ ] Save parsed claims to `data/outputs/claims/parsed_claims.json`.
+
+Goal: turn each claim into graph retrieval signals.
+
+## Stage 10: Graph-Only Retrieval
+
+- [ ] Match claim entities to graph nodes.
+- [ ] Match claim years to graph temporal index.
+- [ ] Score candidate graph nodes by entity match, year match, and semantic similarity.
+- [ ] Expand 1-hop neighbors from matched nodes.
+- [ ] Collect graph facts and linked source chunks.
+- [ ] Save output to `data/outputs/retrieved/graph_topk.json`.
+- [ ] Inspect 20 random graph retrieval results manually.
+
+Goal: retrieve structured graph evidence for each claim.
+
+## Stage 11: Hybrid Text + Graph Retrieval
+
+- [ ] Load text RAG top-k results.
+- [ ] Load graph retrieval top-k results.
+- [ ] Fuse context into three groups: text chunks, graph facts, graph-linked chunks.
+- [ ] Keep context compact: top 3 text chunks, top 5 graph facts, top 3 linked chunks.
+- [ ] Save output to `data/outputs/retrieved/graph_hybrid_topk.json`.
+
+Goal: build the actual GraphRAG retrieval context.
+
+## Stage 12: GraphRAG Verification
+
+- [ ] Write verifier prompt using text evidence plus graph facts.
+- [ ] Require JSON output with `label`, `evidence_ids`, and `reasoning`.
+- [ ] Make the verifier cite text evidence IDs and graph fact IDs.
+- [ ] Run on a small smoke test first.
+- [ ] Run on the full dataset.
+- [ ] Save output to `data/outputs/verified/graph_hybrid_verified.json`.
+
+Goal: classify claims using both text and graph evidence.
+
+## Stage 13: Evaluation And Ablation
+
+- [ ] Evaluate majority baseline.
+- [ ] Evaluate BM25-only RAG.
+- [ ] Evaluate dense-only RAG.
+- [ ] Evaluate hybrid text RAG.
+- [ ] Evaluate hybrid text RAG with top-1 evidence.
+- [ ] Evaluate hybrid text RAG with top-3 evidence.
+- [ ] Evaluate hybrid text RAG with top-5 evidence.
+- [ ] Evaluate graph-only RAG.
+- [ ] Evaluate hybrid Text + Graph RAG.
+- [ ] Evaluate hybrid Text + Graph + Temporal RAG.
+- [ ] Report accuracy, macro F1, balanced accuracy, real recall, fake recall.
+
+Goal: prove whether GraphRAG improves over text RAG.
+
+## Stage 14: Final Error Analysis
+
+- [ ] Categorize retrieval miss errors.
+- [ ] Categorize wrong entity match errors.
+- [ ] Categorize wrong temporal match errors.
+- [ ] Categorize OCR noise errors.
+- [ ] Categorize verifier reasoning errors.
+- [ ] Categorize ambiguous/bad-label examples.
+- [ ] Write `data/outputs/reports/graph_error_analysis.md`.
+
+Goal: explain when GraphRAG helps and when it fails.
+
+## Stage 15: Optional Production Upgrade
+
+- [ ] Move graph from JSON/NetworkX to Neo4j only if JSON graph becomes hard to query.
+- [ ] Add Vietnamese word segmentation for BM25.
+- [ ] Add a cross-encoder reranker.
+- [ ] Add human relevance labels for retrieval evaluation.
+- [ ] Add source/grade metadata to claims if recoverable.
+
+Goal: improve scalability and paper strength after the core method works.
+
+## Current Recommended Next Action
+
+- [ ] Update `configs/graph.yaml` for Stage 3-12 outputs.
+- [ ] Run Stage 3 corpus cleaning.
+- [ ] Inspect `data/outputs/corpus/chunks.json` and `data/outputs/reports/corpus_cleaning_report.md`.
+- [ ] Do not start entity extraction until cleaned chunks and graph schema exist.

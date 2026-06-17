@@ -1,0 +1,24 @@
+RAG VERIFICATION REPORT
+========================================
+Total valid scored rows: 11494
+Accuracy: 0.7998 (79.98%)
+
+Classification report
+----------------------------------------
+              precision    recall  f1-score   support
+
+        real       0.61      0.95      0.75      3552
+        fake       0.97      0.73      0.84      7942
+
+    accuracy                           0.80     11494
+   macro avg       0.79      0.84      0.79     11494
+weighted avg       0.86      0.80      0.81     11494
+
+Confusion matrix rows=true cols=pred
+----------------------------------------
+labels: ['real', 'fake']
+[[3366  186]
+ [2115 5827]]
+
+False real: 2115
+False fake: 186
