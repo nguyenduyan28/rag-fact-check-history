@@ -30,17 +30,20 @@ Goal: identify which failures GraphRAG should fix.
 
 ## Stage 3: Corpus Cleaning
 
-- [ ] Update `configs/graph.yaml` with Stage 3-12 paths and corpus-cleaning options.
-- [ ] Create `src/graph_rag/clean_corpus.py` using `configs/graph.yaml`.
-- [ ] Normalize Unicode for all corpus chunks.
-- [ ] Normalize whitespace and broken line breaks.
-- [ ] Remove very short or garbage chunks.
-- [ ] Keep metadata for every chunk: `chunk_id`, `book`, `page`, `source`, `text`.
-- [ ] Add trace metadata where useful: `char_count`, `year_mentions`, `prev_chunk_id`, `next_chunk_id`.
-- [ ] Save cleaned corpus metadata to `data/outputs/corpus/chunks.json`.
-- [ ] Save cleaning summary to `data/outputs/reports/corpus_cleaning_report.md`.
-- [ ] Keep original `.txt` files unchanged.
-- [ ] Inspect a sample of cleaned chunks from grades 10, 11, and 12.
+- [x] Update `configs/graph.yaml` with Stage 3-12 paths, corpus-cleaning options, and section-aware chunking options.
+- [x] Create `src/graph_rag/clean_corpus.py` using `configs/graph.yaml`.
+- [x] Normalize Unicode for all corpus pages.
+- [x] Normalize whitespace and broken line breaks.
+- [x] Remove very short, publication/index, or garbage pages.
+- [x] Save cleaned page records to `data/outputs/corpus/pages.json`.
+- [x] Detect section boundaries from OCR text with deterministic rules.
+- [x] Build section-aware chunks with page-trace metadata.
+- [x] Keep metadata for every chunk: `chunk_id`, `chunk_type`, `book`, `chapter`, `section`, `pages`, `source_pages`, `source_files`, `text`.
+- [x] Add trace metadata where useful: `char_count`, `year_mentions`, `prev_chunk_id`, `next_chunk_id`, `section_confidence`, `fallback_used`.
+- [x] Save section-aware chunks to `data/outputs/corpus/chunks.json`.
+- [x] Save cleaning and chunking summary to `data/outputs/reports/corpus_cleaning_report.md`.
+- [x] Keep original `.txt` files unchanged.
+- [x] Inspect a sample of cleaned chunks from grades 10, 11, and 12.
 
 Goal: have clean, traceable chunks for both RAG and GraphRAG.
 
@@ -193,7 +196,8 @@ Goal: improve scalability and paper strength after the core method works.
 
 ## Current Recommended Next Action
 
-- [ ] Update `configs/graph.yaml` for Stage 3-12 outputs.
-- [ ] Run Stage 3 corpus cleaning.
-- [ ] Inspect `data/outputs/corpus/chunks.json` and `data/outputs/reports/corpus_cleaning_report.md`.
+- [x] Update `configs/graph.yaml` for Stage 3-12 outputs.
+- [x] Run Stage 3 corpus cleaning.
+- [x] Inspect `data/outputs/corpus/pages.json`, `data/outputs/corpus/chunks.json`, and `data/outputs/reports/corpus_cleaning_report.md`.
+- [ ] Create `docs/graph_schema.md` for Stage 4.
 - [ ] Do not start entity extraction until cleaned chunks and graph schema exist.
