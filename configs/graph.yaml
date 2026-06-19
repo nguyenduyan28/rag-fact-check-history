@@ -25,10 +25,10 @@ corpus_cleaning:
 
 chunking:
   method: section_aware_rule_based
-  max_chars: 3500
+  max_chars: 2200
   min_chars: 120
   overlap_prev_sections: 1
-  split_overlap_chars: 300
+  split_overlap_chars: 200
   keep_page_trace: true
   fallback_to_page_chunks: true
   filter_exercise_blocks: true

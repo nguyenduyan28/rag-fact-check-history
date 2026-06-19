@@ -15,10 +15,47 @@ LESSON_RE = re.compile(r"^(?:Bài|BÀI|BAI)\s*(\d{1,2})(?:\s*[:.\-]\s*(.*))?$", 
 LESSON_MARKER_RE = re.compile(r"^(?:Bài|BÀI|BAI)$", re.IGNORECASE)
 MAJOR_SECTION_RE = re.compile(r"^(I|II|III|IV|V|VI|VII|VIII|IX|X)\s*[.\-]?\s+(.+)$", re.IGNORECASE)
 NUMBERED_SECTION_RE = re.compile(r"^(\d{1,2})\s*[.)\-]\s+(.+)$")
-EXERCISE_RE = re.compile(r"\b(Câu hỏi|Câu hỏi và bài tập|Bài tập|Hãy nêu|Dựa vào)\b", re.IGNORECASE)
+EXERCISE_RE = re.compile(
+    r"^(?:[-–•]\s*)?(?:[A-ZĐ]\s+)?(?:"
+    r"Câu hỏi|Cầu hỏi|Câu hỏi và bài tập|Bài tập|"
+    r"Hãy|Hãy nêu|Hãy trình bày|"
+    r"Nêu|Trình bày|Dựa vào|Vì sao|Tại sao|"
+    r"Thế nào|Như thế nào|Lập niên biểu|Tìm hiểu|"
+    r"Em\s+(?:đánh giá|nghĩ|hiểu)"
+    r")\b",
+    re.IGNORECASE,
+)
 PUBLICATION_NOISE_RE = re.compile(
     r"(Chịu trách nhiệm xuất bản|Biên tập lần đầu|Biên tập tái bản|Biên vẽ|Biên vê|"
     r"Trình bày bìa|Sửa bản in|Chế bản|CHẾ BẢN|Mã số|In xong|Bản quyền thuộc)",
+    re.IGNORECASE,
+)
+PAGE_NUMBER_LINE_RE = re.compile(r"^\d{1,3}$")
+FIGURE_OR_TABLE_RE = re.compile(r"^(?:Hình|Lược đồ|Bảng)\s*\d+", re.IGNORECASE)
+MAP_LABEL_RE = re.compile(
+    r"\b(?:BIỂN|DAO|ĐẢO|SÔNG|KÊNH|VỊNH|THÁI BÌNH|ĐẠI TÂY|THU DÂU|THỦ DẦU|"
+    r"PHAN RÍ|PLAYKU|TUY HOA|CHÂU ĐỐC|RẠCH GIA|BẠC LIÊU|CẦN THƠ)\b",
+    re.IGNORECASE,
+)
+HEADING_HINT_RE = re.compile(
+    r"\b(?:CHIẾN|CÁCH|MẠNG|PHONG|TRÀO|NƯỚC|QUỐC|XÃ|HỘI|KINH|TẾ|VĂN|"
+    r"HOÁ|HÓA|CHÍNH|TRỊ|THẾ|GIỚI|VIỆT|NAM|THỜI|KÌ|KỲ|ĐẢNG|KHÁNG|CHỐNG|"
+    r"ĐỘC|LẬP|DÂN|TỘC|CÔNG|NHÂN|CHỦ|NGHĨA|GIÁO|DỤC|NGƯỜI|NGUYÊN|"
+    r"THUỶ|THỦY|PHONG|KIẾN|TƯ|SẢN|ĐẾ|MĨ|MỸ|NHẬT|PHÁP|TRUNG|QUỐC|LIÊN|XÔ)\b",
+    re.IGNORECASE,
+)
+EXERCISE_BLOCK_RE = re.compile(r"\b(?:Câu hỏi|Cầu hỏi|Câu hỏi và bài tập|Bài tập)\b.*$", re.IGNORECASE)
+EXERCISE_QUESTION_RE = re.compile(
+    r"(?:^|\s)(?:[-–•]\s*)?(?:[A-ZĐ]\s+)?(?:"
+    r"Hãy|Nêu|Trình bày|Dựa vào|Vì sao|Tại sao|Thế nào|Như thế nào|"
+    r"Lập niên biểu|Tìm hiểu|Em\s+(?:đánh giá|nghĩ|hiểu)"
+    r")[^.?!]*\?",
+    re.IGNORECASE,
+)
+QUESTION_HINT_RE = re.compile(
+    r"[^.?!]{0,180}(?:như thế nào|thế nào|là gì|có gì|vai trò|ảnh hưởng|"
+    r"hoàn cảnh|diễn biến|nguyên nhân|ý nghĩa|bối cảnh|nội dung|"
+    r"kết quả|đặc điểm)[^.?!]{0,120}\?",
     re.IGNORECASE,
 )
 
@@ -66,6 +103,8 @@ def is_uppercase_heading(line: str) -> bool:
     words = line.split()
     if len(words) < 3 or len(line) > 120:
         return False
+    if is_noisy_heading_candidate(line):
+        return False
     if line.endswith((".", ",", ";", ":", "?", "!")):
         return False
     if any(char.isdigit() for char in line) and uppercase_ratio(line) < 0.85:
@@ -73,7 +112,37 @@ def is_uppercase_heading(line: str) -> bool:
     return uppercase_ratio(line) >= 0.75
 
 
+def is_noise_line(line: str) -> bool:
+    value = line.strip()
+    if not value:
+        return True
+    if PAGE_NUMBER_LINE_RE.match(value):
+        return True
+    if FIGURE_OR_TABLE_RE.match(value):
+        return True
+    return False
+
+
+def is_noisy_heading_candidate(line: str) -> bool:
+    value = line.strip()
+    words = re.findall(r"[0-9A-Za-zÀ-ỹĐđ]+", value)
+    if not words:
+        return True
+    if FIGURE_OR_TABLE_RE.match(value):
+        return True
+    if len(words) <= 4 and all(len(word) <= 3 for word in words):
+        return True
+    if len(words) <= 4 and MAP_LABEL_RE.search(value) and not HEADING_HINT_RE.search(value):
+        return True
+    if len(words) <= 4 and uppercase_ratio(value) >= 0.8 and not HEADING_HINT_RE.search(value):
+        return True
+    return False
+
+
 def detect_heading(line: str) -> dict[str, Any] | None:
+    if is_noise_line(line):
+        return None
+
     lesson_match = LESSON_RE.match(line)
     if lesson_match:
         lesson_number = int(lesson_match.group(1))
@@ -114,6 +183,9 @@ def detect_heading(line: str) -> dict[str, Any] | None:
                 "title": line,
             }
 
+    if is_noisy_heading_candidate(line):
+        return None
+
     if is_uppercase_heading(line):
         return {
             "kind": "uppercase_heading",
@@ -126,7 +198,36 @@ def detect_heading(line: str) -> dict[str, Any] | None:
 
 
 def is_exercise_line(line: str) -> bool:
-    return bool(EXERCISE_RE.search(line))
+    value = line.strip()
+    if EXERCISE_RE.search(value):
+        return True
+    if re.search(r"\bhãy\s+(?:nêu|trình bày|cho biết|phân tích)\b", value, re.IGNORECASE):
+        return True
+    if value.endswith("?") and re.search(
+        r"(như thế nào|thế nào|là gì|vì sao|tại sao|có gì|"
+        r"hãy|nêu|trình bày|cho biết|đánh giá|em nghĩ|vai trò|ảnh hưởng|"
+        r"hoàn cảnh|diễn biến|nguyên nhân|ý nghĩa|bối cảnh|nội dung|"
+        r"kết quả|đặc điểm|lập niên biểu)",
+        value,
+        re.IGNORECASE,
+    ):
+        return True
+    return False
+
+
+def remove_exercise_text(text: str) -> str:
+    text = EXERCISE_BLOCK_RE.sub("", text)
+    text = EXERCISE_QUESTION_RE.sub(" ", text)
+    text = QUESTION_HINT_RE.sub(" ", text)
+    return clean_text(text, "NFC", True)
+
+
+def is_exercise_snippet(text: str) -> bool:
+    return bool(
+        EXERCISE_BLOCK_RE.search(text)
+        or EXERCISE_QUESTION_RE.search(text)
+        or QUESTION_HINT_RE.search(text)
+    )
 
 
 def is_publication_or_index_page(text: str) -> bool:
@@ -149,16 +250,25 @@ def make_page_record(path: Path, config: dict[str, Any]) -> tuple[dict[str, Any]
 
     cleaning = config["corpus_cleaning"]
     raw_text = path.read_text(encoding="utf-8", errors="ignore")
-    lines = [
+    raw_lines = [
         clean_line(line, cleaning.get("unicode_form", "NFC"), cleaning.get("normalize_whitespace", True))
         for line in raw_text.splitlines()
     ]
-    lines = [line for line in lines if line]
+    raw_lines = [line for line in raw_lines if line]
+    raw_text_cleaned = clean_text(
+        " ".join(raw_lines),
+        cleaning.get("unicode_form", "NFC"),
+        cleaning.get("normalize_whitespace", True),
+    )
+    if len(raw_text_cleaned) < cleaning.get("min_chars", 80):
+        return None, "too_short"
+    if is_publication_or_index_page(raw_text_cleaned):
+        return None, "publication_or_index_page"
+
+    lines = [line for line in raw_lines if not is_noise_line(line)]
     text = clean_text(" ".join(lines), cleaning.get("unicode_form", "NFC"), cleaning.get("normalize_whitespace", True))
     if len(text) < cleaning.get("min_chars", 80):
         return None, "too_short"
-    if is_publication_or_index_page(text):
-        return None, "publication_or_index_page"
 
     record = {
         **metadata,
@@ -180,7 +290,7 @@ def add_line(section: dict[str, Any], page: dict[str, Any], line: str) -> None:
 def finalize_section(section: dict[str, Any] | None, sections: list[dict[str, Any]], min_chars: int) -> None:
     if not section:
         return
-    text = clean_text(" ".join(section.pop("lines")), "NFC", True)
+    text = remove_exercise_text(clean_text(" ".join(section.pop("lines")), "NFC", True))
     if len(text) < min_chars:
         return
     section["pages"] = sorted_unique(section["pages"])
@@ -363,6 +473,8 @@ def add_previous_section_overlap(sections: list[dict[str, Any]], config: dict[st
         previous = previous_by_book.get(section["book"])
         if previous and not section.get("fallback_used") and not previous.get("fallback_used"):
             prefix = tail_text(previous["text"], overlap_chars)
+            if is_exercise_snippet(prefix):
+                prefix = ""
             if prefix:
                 new_section["text"] = clean_text(f"{prefix} {section['text']}", "NFC", True)
                 new_section["char_count"] = len(new_section["text"])
@@ -425,6 +537,15 @@ def materialize_chunks(sections: list[dict[str, Any]], config: dict[str, Any], r
                 "source_pages": section["source_pages"],
                 "source_files": section["source_files"],
                 "text": part,
+                "contextual_text": clean_text(
+                    " ".join(
+                        value
+                        for value in [section.get("chapter"), section.get("section"), part]
+                        if value
+                    ),
+                    "NFC",
+                    True,
+                ),
                 "char_count": len(part),
                 "year_mentions": sorted(extract_years(part)),
                 "prev_chunk_id": None,

@@ -34,9 +34,37 @@ def extract_page(path: Path) -> int:
     return int(match.group(1)) if match else 0
 
 
-def load_corpus(corpus_dir: str) -> list[dict]:
+def load_corpus(corpus_path: str) -> list[dict]:
+    path = project_path(corpus_path)
+    if path.is_file() and path.suffix == ".json":
+        rows = load_json(corpus_path)
+        documents = []
+        for row in rows:
+            text = normalize_text(row.get("text", ""))
+            if not text:
+                continue
+            pages = row.get("pages") or []
+            source_files = row.get("source_files") or []
+            documents.append(
+                {
+                    "doc_id": row.get("chunk_id"),
+                    "book": row.get("book"),
+                    "page": pages[0] if pages else None,
+                    "pages": pages,
+                    "source": source_files[0] if source_files else row.get("chunk_id"),
+                    "source_files": source_files,
+                    "chunk_type": row.get("chunk_type"),
+                    "chapter": row.get("chapter"),
+                    "section": row.get("section"),
+                    "year_mentions": row.get("year_mentions", []),
+                    "text": text,
+                    "index_text": normalize_text(row.get("contextual_text") or text),
+                }
+            )
+        return documents
+
     documents = []
-    for txt_file in sorted(project_path(corpus_dir).rglob("*.txt")):
+    for txt_file in sorted(path.rglob("*.txt")):
         text = normalize_text(txt_file.read_text(encoding="utf-8", errors="ignore"))
         if not text:
             continue
@@ -78,12 +106,13 @@ def retrieve_all(config: dict) -> list[dict]:
     retrieval = config["retrieval"]
     model_config = config["models"]
 
-    documents = load_corpus(paths["corpus_dir"])
+    corpus_path = paths.get("corpus_path", paths.get("corpus_dir"))
+    documents = load_corpus(corpus_path)
     if not documents:
-        raise ValueError(f"No corpus .txt files found in {paths['corpus_dir']}")
+        raise ValueError(f"No corpus documents found in {corpus_path}")
 
     claims = load_json(paths["input_claims"])
-    corpus_texts = [doc["text"] for doc in documents]
+    corpus_texts = [doc.get("index_text") or doc["text"] for doc in documents]
 
     print(f"Loaded {len(documents)} corpus chunks")
     print(f"Loaded {len(claims)} claims")
@@ -138,7 +167,13 @@ def retrieve_all(config: dict) -> list[dict]:
                     "doc_id": doc["doc_id"],
                     "book": doc["book"],
                     "page": doc["page"],
+                    "pages": doc.get("pages", [doc["page"]]),
                     "source": doc["source"],
+                    "source_files": doc.get("source_files", [doc["source"]]),
+                    "chunk_type": doc.get("chunk_type"),
+                    "chapter": doc.get("chapter"),
+                    "section": doc.get("section"),
+                    "year_mentions": doc.get("year_mentions", []),
                     "score": fused_scores.get(doc_idx, 0.0),
                     "bm25_score": float(bm25_scores[doc_idx]),
                     "dense_score": float(dense_scores[doc_idx]),

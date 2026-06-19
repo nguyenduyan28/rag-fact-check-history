@@ -4,20 +4,20 @@
 
 - Total raw files: 591
 - Cleaned pages: 571
-- Output chunks: 496
-- Section-aware chunks: 496
+- Output chunks: 540
+- Section-aware chunks: 540
 - Page fallback chunks: 0
 - Filtered pages: 20
-- Exercise blocks filtered: 93
-- Oversized sections split: 78
+- Exercise blocks filtered: 159
+- Oversized sections split: 131
 
 ## By Book
 
 | Book | Cleaned Pages | Section Chunks | Fallback Chunks |
 |---|---:|---:|---:|
-| lichsu_10 | 199 | 171 | 0 |
-| lichsu_11 | 153 | 108 | 0 |
-| lichsu_12 | 219 | 217 | 0 |
+| lichsu_10 | 199 | 152 | 0 |
+| lichsu_11 | 153 | 113 | 0 |
+| lichsu_12 | 219 | 275 | 0 |
 
 ## Config
 
@@ -26,7 +26,7 @@
 - Page min chars: 80
 - Chunking method: section_aware_rule_based
 - Chunk min chars: 120
-- Chunk max chars: 3500
+- Chunk max chars: 2200
 - Previous-section overlap: 1
 
 ## Heading Detection
@@ -36,8 +36,8 @@
 | lesson | 54 |
 | lesson_marker | 33 |
 | major_section | 56 |
-| numbered_section | 168 |
-| uppercase_heading | 511 |
+| numbered_section | 135 |
+| uppercase_heading | 441 |
 
 ## Filter Reasons
 
@@ -65,8 +65,8 @@
 
 - Chunk ID: `lichsu_11_s6_001`
 - Type: `section`
-- Pages: [4, 5, 6, 7, 8]
-- Years: [1854, 1868]
+- Pages: [4, 5, 6]
+- Years: [1868]
 - Preview: Bài NHẬT BẢN Cuộc Duy tân Minh Trị năm 1868 có ý nghĩa như một cuộc cách mạng tư sản, đã đưa Nhật Bản phát triển theo con đường của các nước phương Tây và trở thành một nước đế quốc duy nhất ở châu Á. 1 Nhật Bản từ đầu thế kỉ XIX đến trước năm 1868 Đên giữa thế kỉ XIX, sau hơn 200 năm thống trị, chế
 
 ### lichsu_12
