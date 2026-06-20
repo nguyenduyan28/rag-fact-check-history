@@ -1,5 +1,6 @@
 paths:
   corpus_dir: data/corpus
+  cleaned_pages: data/outputs/corpus/pages.json
   cleaned_chunks: data/outputs/corpus/chunks.json
   corpus_report: data/outputs/reports/corpus_cleaning_report.md
   graph_schema: docs/graph_schema.md
@@ -21,8 +22,16 @@ corpus_cleaning:
   normalize_whitespace: true
   min_chars: 80
   keep_original_txt: true
-  include_prev_next_pages: true
-  chunk_id_template: "{book}_p{page}"
+
+chunking:
+  method: section_aware_rule_based
+  max_chars: 2200
+  min_chars: 120
+  overlap_prev_sections: 1
+  split_overlap_chars: 200
+  keep_page_trace: true
+  fallback_to_page_chunks: true
+  filter_exercise_blocks: true
 
 schema:
   node_types:

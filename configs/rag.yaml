@@ -1,5 +1,6 @@
 paths:
   corpus_dir: data/corpus
+  corpus_path: data/outputs/corpus/chunks.json
   input_claims: data/claims/final_dataset.json
   output_retrieved: data/outputs/retrieved/hybrid_top5.json
 
