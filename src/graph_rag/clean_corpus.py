@@ -266,7 +266,8 @@ def make_page_record(path: Path, config: dict[str, Any]) -> tuple[dict[str, Any]
         return None, "publication_or_index_page"
 
     lines = [line for line in raw_lines if not is_noise_line(line)]
-    text = clean_text(" ".join(lines), cleaning.get("unicode_form", "NFC"), cleaning.get("normalize_whitespace", True))
+    text = clean_text(" ".join(lines), cleaning.get("unicode_form", "NFC"), 
+        cleaning.get("normalize_whitespace", True))
     if len(text) < cleaning.get("min_chars", 80):
         return None, "too_short"
 

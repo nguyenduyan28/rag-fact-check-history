@@ -5,7 +5,9 @@ paths:
   corpus_report: data/outputs/reports/corpus_cleaning_report.md
   graph_schema: docs/graph_schema.md
   extracted_chunks: data/outputs/graph/extracted_chunks.json
+  extracted_chunks_cleaned: data/outputs/graph/extracted_chunks_cleaned.json
   extraction_errors: data/outputs/graph/extraction_errors.json
+  extraction_cleanup_report: data/outputs/reports/extraction_cleanup_report.md
   entities_aligned: data/outputs/graph/entities_aligned.json
   entity_aliases: data/outputs/graph/entity_aliases.json
   graph_nodes: data/outputs/graph/graph_nodes.json
@@ -53,3 +55,35 @@ schema:
     - BEFORE
     - AFTER
     - SUPPORTED_BY
+
+extraction:
+  provider: gemini_vertex
+  model: gemini-2.5-flash
+  location_env: GOOGLE_CLOUD_LOCATION
+  default_location: us-central1
+  temperature: 0.0
+  max_output_tokens: 8192
+  thinking_budget: 0
+  workers: 2
+  checkpoint_every: 25
+  max_input_chars: 2200
+  max_entities_per_chunk: 12
+  max_relations_per_chunk: 20
+  retry_attempts: 2
+  save_raw_response: false
+
+extraction_cleanup:
+  max_entities_per_chunk: 12
+  max_relations_per_chunk: 20
+  min_entity_confidence: 0.8
+  min_relation_confidence: 0.8
+  drop_long_concept_names_over_chars: 80
+  drop_generic_concepts:
+    - Khoa học
+    - Lịch sử loài người
+    - Trái Đất
+    - chiến tranh
+    - hòa bình
+    - kinh tế
+    - chính trị
+    - xã hội

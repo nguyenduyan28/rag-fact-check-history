@@ -49,28 +49,32 @@ Goal: have clean, traceable chunks for both RAG and GraphRAG.
 
 ## Stage 4: Decide Graph Schema
 
-- [ ] Create `docs/graph_schema.md`.
-- [ ] Keep `docs/graph_schema.md` aligned with `configs/graph.yaml` schema fields.
-- [ ] Define node types: `DocumentChunk`, `Person`, `Organization`, `Event`, `Place`, `Time`, `Concept`.
-- [ ] Define edge types: `MENTIONS`, `PARTICIPATED_IN`, `OCCURRED_AT`, `LOCATED_IN`, `RELATED_TO`, `CAUSES`, `RESULTS_IN`, `BEFORE`, `AFTER`, `SUPPORTED_BY`.
-- [ ] Define required node fields: `id`, `type`, `name`, `aliases`, `description`, `years`, `source_chunks`.
-- [ ] Define required edge fields: `source`, `target`, `type`, `description`, `source_chunk`, `confidence`.
+- [x] Create `docs/graph_schema.md`.
+- [x] Keep `docs/graph_schema.md` aligned with `configs/graph.yaml` schema fields.
+- [x] Define node types: `DocumentChunk`, `Person`, `Organization`, `Event`, `Place`, `Time`, `Concept`.
+- [x] Define edge types: `MENTIONS`, `PARTICIPATED_IN`, `OCCURRED_AT`, `LOCATED_IN`, `RELATED_TO`, `CAUSES`, `RESULTS_IN`, `BEFORE`, `AFTER`, `SUPPORTED_BY`.
+- [x] Define required node fields: `id`, `type`, `name`, `aliases`, `description`, `years`, `source_chunks`.
+- [x] Define required edge fields: `source`, `target`, `type`, `description`, `source_chunk`, `confidence`.
+- [x] Write Stage 4 method/result report at `docs/stage_4/report.md`.
 
 Goal: lock the graph format before extraction starts.
 
 ## Stage 5: Entity/Event/Time Extraction
 
-- [ ] Write an extraction prompt for one textbook chunk.
-- [ ] Extract people, organizations, events, places, concepts, and time expressions.
-- [ ] Extract relations between them.
-- [ ] Force valid JSON output.
-- [ ] Add retry logic for invalid JSON.
-- [ ] Add checkpointing so extraction can resume.
-- [ ] Run extraction on a small sample of 10 chunks first.
-- [ ] Manually inspect sample extraction quality.
-- [ ] Run extraction on all 591 chunks.
-- [ ] Save output to `data/outputs/graph/extracted_chunks.json`.
-- [ ] Save failures to `data/outputs/graph/extraction_errors.json`.
+- [x] Write an extraction prompt for one textbook chunk.
+- [x] Extract people, organizations, events, places, concepts, and time expressions.
+- [x] Extract relations between them.
+- [x] Force valid JSON output.
+- [x] Add retry logic for invalid JSON.
+- [x] Add checkpointing so extraction can resume.
+- [x] Run extraction on a small sample first.
+- [x] Manually inspect sample extraction quality.
+- [x] Run extraction on all 540 cleaned chunks.
+- [x] Save raw output to `data/outputs/graph/extracted_chunks.json`.
+- [x] Save failures to `data/outputs/graph/extraction_errors.json`.
+- [x] Clean raw extraction output into `data/outputs/graph/extracted_chunks_cleaned.json`.
+- [x] Save cleanup summary to `data/outputs/reports/extraction_cleanup_report.md`.
+- [x] Write Stage 5 method/result report at `docs/stage_5/report.md`.
 
 Goal: convert textbook chunks into structured historical facts.
 
@@ -199,5 +203,7 @@ Goal: improve scalability and paper strength after the core method works.
 - [x] Update `configs/graph.yaml` for Stage 3-12 outputs.
 - [x] Run Stage 3 corpus cleaning.
 - [x] Inspect `data/outputs/corpus/pages.json`, `data/outputs/corpus/chunks.json`, and `data/outputs/reports/corpus_cleaning_report.md`.
-- [ ] Create `docs/graph_schema.md` for Stage 4.
-- [ ] Do not start entity extraction until cleaned chunks and graph schema exist.
+- [x] Create `docs/graph_schema.md` for Stage 4.
+- [x] Run Stage 5 entity/event/time/relation extraction on cleaned chunks.
+- [x] Clean extraction output before graph construction.
+- [ ] Start Stage 6 entity alignment using `data/outputs/graph/extracted_chunks_cleaned.json`.
