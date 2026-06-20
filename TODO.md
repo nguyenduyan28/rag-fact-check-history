@@ -80,15 +80,15 @@ Goal: convert textbook chunks into structured historical facts.
 
 ## Stage 6: Entity Alignment
 
-- [ ] Collect all extracted entities into `entities_raw.json`.
-- [ ] Normalize names: lowercase, Unicode NFC, punctuation cleanup.
+- [x] Collect all extracted entities into `entities_raw.json`.
+- [x] Normalize names: lowercase, Unicode NFC, punctuation cleanup.
 - [ ] Add manual alias rules for common names.
 - [ ] Merge obvious aliases like `Mỹ`, `Mĩ`, `Hoa Kỳ`.
 - [ ] Merge obvious aliases like `Liên Xô`, `Liên bang Xô viết`.
 - [ ] Merge obvious aliases like `Nguyễn Ái Quốc`, `Hồ Chí Minh` when historically appropriate.
-- [ ] Use embedding or LLM review for uncertain duplicates.
-- [ ] Save final aligned entities to `data/outputs/graph/entities_aligned.json`.
-- [ ] Save alias map to `data/outputs/graph/entity_aliases.json`.
+- [ ] Use embedding or LLM review for uncertain duplicates. Current blocker: Gemini Vertex env is missing `GOOGLE_CLOUD_PROJECT`.
+- [x] Save deterministic exact-normalized aligned entities to `data/outputs/graph/entities_aligned.json`.
+- [x] Save deterministic alias map to `data/outputs/graph/entity_aliases.json`.
 
 Goal: avoid duplicated graph nodes for the same historical entity.
 
@@ -206,4 +206,5 @@ Goal: improve scalability and paper strength after the core method works.
 - [x] Create `docs/graph_schema.md` for Stage 4.
 - [x] Run Stage 5 entity/event/time/relation extraction on cleaned chunks.
 - [x] Clean extraction output before graph construction.
-- [ ] Start Stage 6 entity alignment using `data/outputs/graph/extracted_chunks_cleaned.json`.
+- [x] Start Stage 6 entity alignment using `data/outputs/graph/extracted_chunks_cleaned.json`.
+- [ ] Set `GOOGLE_CLOUD_PROJECT`/`GOOGLE_CLOUD_LOCATION` and rerun Gemini entity alignment with `python3 -m src.graph_rag.align_entities --config configs/graph.yaml --no-resume`.

@@ -8,8 +8,12 @@ paths:
   extracted_chunks_cleaned: data/outputs/graph/extracted_chunks_cleaned.json
   extraction_errors: data/outputs/graph/extraction_errors.json
   extraction_cleanup_report: data/outputs/reports/extraction_cleanup_report.md
+  entities_raw: data/outputs/graph/entities_raw.json
   entities_aligned: data/outputs/graph/entities_aligned.json
   entity_aliases: data/outputs/graph/entity_aliases.json
+  entity_alignment_decisions: data/outputs/graph/entity_alignment_decisions.json
+  entity_alignment_errors: data/outputs/graph/entity_alignment_errors.json
+  entity_alignment_report: data/outputs/reports/entity_alignment_report.md
   graph_nodes: data/outputs/graph/graph_nodes.json
   graph_edges: data/outputs/graph/graph_edges.json
   history_graph: data/outputs/graph/history_graph.json
@@ -87,3 +91,31 @@ extraction_cleanup:
     - kinh tế
     - chính trị
     - xã hội
+
+entity_alignment:
+  provider: gemini_vertex
+  model: gemini-2.5-flash
+  location_env: GOOGLE_CLOUD_LOCATION
+  default_location: us-central1
+  temperature: 0.0
+  max_output_tokens: 2048
+  thinking_budget: 0
+  workers: 4
+  checkpoint_every: 10
+  retry_attempts: 2
+  min_merge_confidence: 0.8
+  max_group_entities: 12
+  max_contexts_per_entity: 2
+  max_candidate_groups: 150
+  enable_similarity_blocks: true
+  similarity_threshold: 0.9
+  enable_country_state_windows: false
+  seed_alias_groups:
+    - [Mỹ, Mĩ, Hoa Kỳ, Hoa Kì, Hợp chúng quốc Hoa Kỳ]
+    - [Liên Xô, Liên bang Xô viết, Liên bang Xô Viết]
+    - [Nguyễn Ái Quốc, Hồ Chí Minh, Nguyễn Tất Thành]
+    - [An Nam, Việt Nam, Đại Việt, Đại Cồ Việt]
+    - [Pháp, thực dân Pháp, đế quốc Pháp]
+    - [Nhật, Nhật Bản, phát xít Nhật]
+    - [Việt Minh, Mặt trận Việt Minh, Mặt trận Việt Nam độc lập đồng minh]
+  review_low_confidence: true
