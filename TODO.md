@@ -82,48 +82,63 @@ Goal: convert textbook chunks into structured historical facts.
 
 - [x] Collect all extracted entities into `entities_raw.json`.
 - [x] Normalize names: lowercase, Unicode NFC, punctuation cleanup.
-- [ ] Add manual alias rules for common names.
-- [ ] Merge obvious aliases like `Mỹ`, `Mĩ`, `Hoa Kỳ`.
-- [ ] Merge obvious aliases like `Liên Xô`, `Liên bang Xô viết`.
-- [ ] Merge obvious aliases like `Nguyễn Ái Quốc`, `Hồ Chí Minh` when historically appropriate.
-- [ ] Use embedding or LLM review for uncertain duplicates. Current blocker: Gemini Vertex env is missing `GOOGLE_CLOUD_PROJECT`.
-- [x] Save deterministic exact-normalized aligned entities to `data/outputs/graph/entities_aligned.json`.
-- [x] Save deterministic alias map to `data/outputs/graph/entity_aliases.json`.
+- [x] Add manual alias seed groups for common names.
+- [x] Review obvious aliases like `Mỹ`, `Mĩ`, `Hoa Kỳ` in Gemini candidate groups.
+- [x] Review obvious aliases like `Liên Xô`, `Liên bang Xô viết` in Gemini candidate groups.
+- [x] Review aliases like `Nguyễn Ái Quốc`, `Hồ Chí Minh` when context supports merging.
+- [x] Use Gemini review for 300 prioritized uncertain duplicate candidate groups.
+- [x] Save aligned entities to `data/outputs/graph/entities_aligned.json`.
+- [x] Save alias map to `data/outputs/graph/entity_aliases.json`.
+- [x] Save Gemini decisions to `data/outputs/graph/entity_alignment_decisions.json`.
+- [x] Save alignment report to `data/outputs/reports/entity_alignment_report.md`.
 
 Goal: avoid duplicated graph nodes for the same historical entity.
 
 ## Stage 7: Build Graph
 
-- [ ] Build `DocumentChunk` nodes from cleaned corpus chunks.
-- [ ] Build entity/event/time/place/concept nodes from aligned extraction output.
-- [ ] Build edges from extracted relations.
-- [ ] Add `MENTIONS` edges from chunks to entities/events.
-- [ ] Add `source_chunk` to every edge.
-- [ ] Add year metadata to event/time nodes.
-- [ ] Save nodes to `data/outputs/graph/graph_nodes.json`.
-- [ ] Save edges to `data/outputs/graph/graph_edges.json`.
-- [ ] Save combined graph to `data/outputs/graph/history_graph.json`.
-- [ ] Start with JSON or NetworkX, not Neo4j.
+- [x] Build `DocumentChunk` nodes from cleaned corpus chunks.
+- [x] Build entity/event/time/place/concept nodes from aligned extraction output.
+- [x] Build edges from extracted relations.
+- [x] Add `MENTIONS` edges from chunks to entities/events.
+- [x] Add `source_chunk` to every edge.
+- [x] Add year metadata to event/time nodes.
+- [x] Save nodes to `data/outputs/graph/graph_nodes.json`.
+- [x] Save edges to `data/outputs/graph/graph_edges.json`.
+- [x] Save combined graph to `data/outputs/graph/history_graph.json`.
+- [x] Start with JSON or NetworkX, not Neo4j.
+- [x] Save graph build report to `data/outputs/reports/graph_build_report.md`.
+- [x] Write Stage 7 report at `docs/stage_7/report.md`.
 
 Goal: create a debuggable graph before adding graph retrieval.
 
 ## Stage 8: Temporal Index
 
-- [ ] Extract years from every graph node description.
-- [ ] Extract years from every graph edge description.
-- [ ] Extract years from every chunk text.
-- [ ] Store node-to-year mappings.
-- [ ] Store chunk-to-year mappings.
-- [ ] Save to `data/outputs/graph/temporal_index.json`.
+- [x] Extract years from every graph node description.
+- [x] Extract years from every graph edge description.
+- [x] Extract years from every chunk text.
+- [x] Store node-to-year mappings.
+- [x] Store chunk-to-year mappings.
+- [x] Store reverse year-to-node, year-to-edge, and year-to-chunk mappings.
+- [x] Save to `data/outputs/graph/temporal_index.json`.
+- [x] Save temporal index report to `data/outputs/reports/temporal_index_report.md`.
+- [x] Write Stage 8 report at `docs/stage_8/report.md`.
 
 Goal: support history-specific retrieval by time.
 
 ## Stage 9: Claim Parser
 
-- [ ] Extract years from `key + claim`.
-- [ ] Extract entity candidates from `key + claim`.
-- [ ] Normalize claim entities using the alias map.
-- [ ] Save parsed claims to `data/outputs/claims/parsed_claims.json`.
+- [x] Create `src/graph_rag/parse_claims.py`.
+- [x] Add hybrid deterministic + Gemini claim parsing.
+- [x] Extract years from `key + claim`.
+- [x] Extract entity candidates from `key + claim` using alias matching.
+- [x] Normalize claim entities using the alias map.
+- [x] Extract LLM entity mentions, event mentions, relation hints, claim focus, and keywords.
+- [x] Run a 5-claim smoke test.
+- [x] Save smoke-test parsed claims to `data/outputs/claims/parsed_claims.json`.
+- [x] Save smoke-test failures to `data/outputs/claims/claim_parse_errors.json`.
+- [x] Save smoke-test report to `data/outputs/reports/claim_parser_report.md`.
+- [x] Write Stage 9 report at `docs/stage_9/report.md`.
+- [ ] Run parser on all 11491 claims.
 
 Goal: turn each claim into graph retrieval signals.
 
@@ -207,4 +222,8 @@ Goal: improve scalability and paper strength after the core method works.
 - [x] Run Stage 5 entity/event/time/relation extraction on cleaned chunks.
 - [x] Clean extraction output before graph construction.
 - [x] Start Stage 6 entity alignment using `data/outputs/graph/extracted_chunks_cleaned.json`.
-- [ ] Set `GOOGLE_CLOUD_PROJECT`/`GOOGLE_CLOUD_LOCATION` and rerun Gemini entity alignment with `python3 -m src.graph_rag.align_entities --config configs/graph.yaml --no-resume`.
+- [x] Complete Stage 6 entity alignment with 300 Gemini-reviewed candidate groups and 0 errors.
+- [x] Complete Stage 7 graph building from `entities_aligned.json`, `entity_aliases.json`, and `extracted_chunks_cleaned.json`.
+- [x] Complete Stage 8 temporal indexing from graph nodes, graph edges, and cleaned chunks.
+- [x] Implement and smoke-test Stage 9 claim parser using `key + claim`, `entity_aliases.json`, and Gemini.
+- [ ] Run Stage 9 parser on all 11491 claims.

@@ -1,0 +1,65 @@
+[
+  {
+    "ID": "56_fake",
+    "key": "Hội Việt Nam Cách mạng Thanh niên thực hiện chủ trương \"vô sản hoá\" (Cuối năm 1928) [8].",
+    "claim": "Các cuộc bãi công của công nhân đã diễn ra ở nhiều địa điểm như mỏ than Mạo Khê, đồn điền Lộc Ninh, nhà máy cưa Bến Thủy, nhà máy xi măng Hải Phòng, nhà máy in Poóctay Sài Gòn, đồn điền cao su Cam Tiêm, hãng dầu Nhà Bè, nhà máy tơ Nam Định và nhà máy thủy tinh Hà Nội, nhưng không có sự kiện nào tại nhà máy cưa Bến Thủy.",
+    "label": "fake",
+    "error": "Expecting ',' delimiter: line 169 column 6 (char 5395)"
+  },
+  {
+    "ID": "57_fake",
+    "key": "Hội Việt Nam Cách mạng Thanh niên thực hiện chủ trương \"vô sản hoá\" (Cuối năm 1928) [8].",
+    "claim": "Năm 1930, nhiều cuộc bãi công của công nhân đã nổ ra tại các địa điểm như nhà máy chai Hải Phòng, nhà máy sửa chữa xe lửa Trường Thi (Vinh), nhà máy Avia (Hà Nội), hãng buôn Sácne Sài Gòn, sở ươm cây Hà Nội, nhà máy điện Nam Định, hãng xe hơi Đà Nẵng, xưởng nhuộm nhà máy dệt Nam Định, đồn điền cao su Phú Riềng (nay thuộc tỉnh Bình Phước), hãng dầu Hải Phòng và các nhà in ở Chợ Lớn, nhưng cũng có bãi công tại nhà máy dệt Quang Ngãi.",
+    "label": "fake",
+    "error": "Expecting ',' delimiter: line 201 column 6 (char 5752)"
+  },
+  {
+    "ID": "127_fake",
+    "key": "Đại hội đại biểu lần thứ nhất Đảng Cộng sản Đông Dương họp tại Ma Cao (3-1935), đánh dấu Đảng khôi phục được hệ thống tổ chức [22, 23].",
+    "claim": "Đại hội đã từ chối thông qua các nghị quyết về vận động công nhân, nông dân, binh lính, thanh niên, phụ nữ, công tác dân tộc thiểu số, đội tự vệ và cứu tế đỏ.",
+    "label": "fake",
+    "error": "Expecting ',' delimiter: line 226 column 6 (char 5768)"
+  },
+  {
+    "ID": "250_fake",
+    "key": "Thực dân Pháp nổ súng đánh úp trụ sở Ủy ban nhân dân Nam Bộ, mở đầu cuộc kháng chiến chống Pháp trở lại xâm lược ở Nam Bộ (23-9-1945) [44].",
+    "claim": "Quân và dân Sài Gòn – Chợ Lớn cùng với toàn thể quân dân Bắc Bộ đã đồng loạt vùng lên kháng chiến chống lại quân xâm lược. Các chiến sĩ lực lượng vũ trang của ta đã đột nhập sân bay Tân Sơn Nhất, đốt cháy tàu Đức vừa cập bến Sài Gòn, đánh phá kho tàng, phá nhà giam.",
+    "label": "fake",
+    "error": "Expecting ',' delimiter: line 213 column 6 (char 5294)"
+  },
+  {
+    "ID": "251_fake",
+    "key": "Thực dân Pháp nổ súng đánh úp trụ sở Ủy ban nhân dân Nam Bộ, mở đầu cuộc kháng chiến chống Pháp trở lại xâm lược ở Nam Bộ (23-9-1945) [44].",
+    "claim": "Trong cuộc kháng chiến, các chiến sĩ lực lượng vũ trang đã tiến hành nhiều hoạt động quan trọng như đột nhập sân bay Tân Sơn Nhất, đốt cháy tàu Nhật Bản vừa cập bến Sài Gòn, tấn công kho tàng và phá hủy nhà giam.",
+    "label": "fake",
+    "error": "Expecting ',' delimiter: line 196 column 6 (char 5722)"
+  },
+  {
+    "ID": "277_fake",
+    "key": "Kháng chiến toàn quốc chống Pháp bùng nổ (20 giờ ngày 19-12-1946 ở Hà Nội) [50].",
+    "claim": "Để chống trả quân địch, nhân dân đã tự tạo chướng ngại vật và chiến lũy ngay trên đường phố bằng cách di chuyển đồ đạc và đốt hạ cây cối. Ở Hà Nội, khoảng 20 giờ ngày 19 — 12 — 1945, cuộc chiến đấu bắt đầu. Nhân dân đã khiêng bàn ghế, giường, tủ, kiện hàng, hạ cây cối v.v. làm thành những chướng ngại vật hoặc chiến luỹ ngay trên đường phố để chống giặc.",
+    "label": "fake",
+    "error": "Expecting ',' delimiter: line 214 column 6 (char 5663)"
+  },
+  {
+    "ID": 57,
+    "key": "Hội Việt Nam Cách mạng Thanh niên thực hiện chủ trương \"vô sản hoá\" (Cuối năm 1928) [8].",
+    "claim": "Năm 1929, nhiều cuộc bãi công của công nhân đã nổ ra tại các địa điểm như nhà máy chai Hải Phòng, nhà máy sửa chữa xe lửa Trường Thi (Vinh), nhà máy Avia (Hà Nội), hãng buôn Sácne Sài Gòn, sở ươm cây Hà Nội, nhà máy điện Nam Định, hãng xe hơi Đà Nẵng, xưởng nhuộm nhà máy dệt Nam Định, đồn điền cao su Phú Riềng (nay thuộc tỉnh Bình Phước), hãng dầu Hải Phòng và các nhà in ở Chợ Lớn.",
+    "label": "real",
+    "error": "Expecting ',' delimiter: line 212 column 6 (char 5393)"
+  },
+  {
+    "ID": 127,
+    "key": "Đại hội đại biểu lần thứ nhất Đảng Cộng sản Đông Dương họp tại Ma Cao (3-1935), đánh dấu Đảng khôi phục được hệ thống tổ chức [22, 23].",
+    "claim": "Đại hội cũng thông qua các nghị quyết quan trọng về vận động công nhân, nông dân, binh lính, thanh niên, phụ nữ, công tác dân tộc thiểu số, đội tự vệ và cứu tế đỏ.",
+    "label": "real",
+    "error": "Expecting ',' delimiter: line 225 column 6 (char 5804)"
+  },
+  {
+    "ID": 159,
+    "key": "Khởi nghĩa Nam Kì bùng nổ, lần đầu tiên xuất hiện lá cờ đỏ sao vàng (Đêm 22 rạng sáng 23-11-1940) [30].",
+    "claim": "Khởi nghĩa Nam Kì lan rộng khắp các tỉnh từ miền Đông đến miền Tây Nam Bộ, bao gồm Biên Hoà, Gia Định, Chợ Lớn, Tân An, Bến Tre, Trà Vinh, Cần Thơ, Sóc Trăng, Bạc Liêu, Rạch Giá, Mĩ Tho và Vĩnh Long, đồng thời nhiều chính quyền cách mạng đã được thành lập.",
+    "label": "real",
+    "error": "Expecting ',' delimiter: line 205 column 6 (char 5242)"
+  }
+]

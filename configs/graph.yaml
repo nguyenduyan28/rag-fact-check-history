@@ -17,8 +17,13 @@ paths:
   graph_nodes: data/outputs/graph/graph_nodes.json
   graph_edges: data/outputs/graph/graph_edges.json
   history_graph: data/outputs/graph/history_graph.json
+  graph_build_report: data/outputs/reports/graph_build_report.md
   temporal_index: data/outputs/graph/temporal_index.json
+  temporal_index_report: data/outputs/reports/temporal_index_report.md
+  input_claims: data/claims/final_dataset.json
   parsed_claims: data/outputs/claims/parsed_claims.json
+  claim_parse_errors: data/outputs/claims/claim_parse_errors.json
+  claim_parser_report: data/outputs/reports/claim_parser_report.md
   graph_topk: data/outputs/retrieved/graph_topk.json
   graph_hybrid_topk: data/outputs/retrieved/graph_hybrid_topk.json
   graph_verified: data/outputs/verified/graph_hybrid_verified.json
@@ -106,10 +111,10 @@ entity_alignment:
   min_merge_confidence: 0.8
   max_group_entities: 12
   max_contexts_per_entity: 2
-  max_candidate_groups: 150
+  max_candidate_groups: 300
   enable_similarity_blocks: true
-  similarity_threshold: 0.9
-  enable_country_state_windows: false
+  similarity_threshold: 0.85
+  enable_country_state_windows: true
   seed_alias_groups:
     - [Mỹ, Mĩ, Hoa Kỳ, Hoa Kì, Hợp chúng quốc Hoa Kỳ]
     - [Liên Xô, Liên bang Xô viết, Liên bang Xô Viết]
@@ -119,3 +124,22 @@ entity_alignment:
     - [Nhật, Nhật Bản, phát xít Nhật]
     - [Việt Minh, Mặt trận Việt Minh, Mặt trận Việt Nam độc lập đồng minh]
   review_low_confidence: true
+
+claim_parsing:
+  provider: gemini_vertex
+  model: gemini-2.5-flash
+  location_env: GOOGLE_CLOUD_LOCATION
+  default_location: us-central1
+  temperature: 0.0
+  max_output_tokens: 2048
+  thinking_budget: 0
+  workers: 4
+  checkpoint_every: 50
+  retry_attempts: 2
+  query_fields:
+    - key
+    - claim
+  max_alias_matches: 30
+  min_alias_chars: 4
+  max_llm_mentions: 20
+  max_llm_relations: 12

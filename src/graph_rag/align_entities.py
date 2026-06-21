@@ -370,7 +370,8 @@ def country_state_candidate(rep: dict) -> bool:
 def build_candidate_groups(representatives: list[dict], config: dict) -> list[dict]:
     alignment_config = config.get("entity_alignment", {})
     max_group_entities = int(alignment_config.get("max_group_entities", 18))
-    max_candidate_groups = int(alignment_config.get("max_candidate_groups", 150))
+    raw_max_candidate_groups = alignment_config.get("max_candidate_groups", 150)
+    max_candidate_groups = int(raw_max_candidate_groups) if raw_max_candidate_groups is not None else None
     enable_similarity_blocks = bool(alignment_config.get("enable_similarity_blocks", True))
     enable_country_state_windows = bool(alignment_config.get("enable_country_state_windows", False))
     similarity_threshold = float(alignment_config.get("similarity_threshold", 0.9))
@@ -465,7 +466,9 @@ def build_candidate_groups(representatives: list[dict], config: dict) -> list[di
             continue
         seen_member_sets.add(member_key)
         deduped_groups.append(group)
-    return deduped_groups[:max_candidate_groups]
+    if max_candidate_groups is not None and max_candidate_groups > 0:
+        return deduped_groups[:max_candidate_groups]
+    return deduped_groups
 
 
 def prompt_entity(rep: dict) -> dict:
