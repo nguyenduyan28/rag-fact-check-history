@@ -1,0 +1,12 @@
+input_path: data/claims/final_dataset.json
+output_path: data/claims/clean_dataset.json
+report_path: data/claims/clean_dataset_report.json
+
+deduplicate_by: claim
+conflict_strategy: drop_all
+required_fields:
+  - ID
+  - key
+  - claim
+  - relevant
+  - label

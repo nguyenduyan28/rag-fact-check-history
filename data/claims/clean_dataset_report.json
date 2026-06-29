@@ -1,0 +1,57 @@
+{
+  "input_rows": 11491,
+  "output_rows": 11344,
+  "removed_rows": 147,
+  "duplicate_rows_removed": 141,
+  "conflict_groups_removed": 3,
+  "label_counts_before": {
+    "fake": 7939,
+    "real": 3552
+  },
+  "label_counts_after": {
+    "fake": 7830,
+    "real": 3514
+  },
+  "unique_keys_before": 2060,
+  "unique_keys_after": 2051,
+  "deduplicate_by": "claim",
+  "conflict_strategy": "drop_all",
+  "conflicts": [
+    {
+      "claim": "Kế hoạch Nava của thực dân Pháp ở Đông Dương trong giai đoạn 1953 - 1954 không bao gồm việc thiết lập chính quyền tay sai Ngô Đình Diệm.",
+      "labels": [
+        "fake",
+        "real"
+      ],
+      "count": 2,
+      "ids": [
+        "5544_MET_His_OE_2022_304_27",
+        "5864_MET_His_OE_2022_302_27"
+      ]
+    },
+    {
+      "claim": "Hội nghị Ianta đã quyết định tiêu diệt tận gốc chủ nghĩa phát xít Đức và chủ nghĩa quân phiệt Nhật Bản.",
+      "labels": [
+        "fake",
+        "real"
+      ],
+      "count": 2,
+      "ids": [
+        "5844_MET_His_OE_2022_302_22",
+        "5955_His_2_9"
+      ]
+    },
+    {
+      "claim": "Phong trào cách mạng 1930-1931 đã tấn công trực diện vào hệ thống chính quyền của đế quốc và tay sai.",
+      "labels": [
+        "fake",
+        "real"
+      ],
+      "count": 2,
+      "ids": [
+        "7016_His_31_35",
+        "7338_MET_His_IE_2023_35"
+      ]
+    }
+  ]
+}
