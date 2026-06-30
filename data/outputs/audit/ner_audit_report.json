@@ -1,0 +1,47 @@
+{
+  "rate": 0.1,
+  "seed": 42,
+  "totals": {
+    "entities": 5866,
+    "relations": 4867,
+    "aliases": 3742
+  },
+  "sampled": {
+    "entities": 589,
+    "relations": 490,
+    "aliases": 377
+  },
+  "sampled_by_type": {
+    "entities": {
+      "Concept": 112,
+      "Event": 93,
+      "Organization": 91,
+      "Person": 46,
+      "Place": 132,
+      "Time": 115
+    },
+    "relations": {
+      "AFTER": 7,
+      "BEFORE": 5,
+      "CAUSES": 32,
+      "LOCATED_IN": 13,
+      "OCCURRED_AT": 55,
+      "PARTICIPATED_IN": 23,
+      "RELATED_TO": 298,
+      "RESULTS_IN": 57
+    },
+    "aliases": {
+      "Concept": 87,
+      "Event": 71,
+      "Organization": 46,
+      "Person": 32,
+      "Place": 54,
+      "Time": 87
+    }
+  },
+  "outputs": {
+    "entities": "data/outputs/audit/ner_entity_audit.csv",
+    "relations": "data/outputs/audit/ner_relation_audit.csv",
+    "aliases": "data/outputs/audit/ner_alias_audit.csv"
+  }
+}
