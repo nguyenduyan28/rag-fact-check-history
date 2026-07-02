@@ -1,145 +1,204 @@
 paths:
-  corpus_dir: data/corpus
-  cleaned_pages: data/outputs/corpus/pages.json
-  cleaned_chunks: data/outputs/corpus/chunks.json
-  corpus_report: data/outputs/reports/corpus_cleaning_report.md
-  graph_schema: docs/graph_schema.md
-  extracted_chunks: data/outputs/graph/extracted_chunks.json
-  extracted_chunks_cleaned: data/outputs/graph/extracted_chunks_cleaned.json
-  extraction_errors: data/outputs/graph/extraction_errors.json
-  extraction_cleanup_report: data/outputs/reports/extraction_cleanup_report.md
-  entities_raw: data/outputs/graph/entities_raw.json
-  entities_aligned: data/outputs/graph/entities_aligned.json
-  entity_aliases: data/outputs/graph/entity_aliases.json
-  entity_alignment_decisions: data/outputs/graph/entity_alignment_decisions.json
-  entity_alignment_errors: data/outputs/graph/entity_alignment_errors.json
-  entity_alignment_report: data/outputs/reports/entity_alignment_report.md
-  graph_nodes: data/outputs/graph/graph_nodes.json
-  graph_edges: data/outputs/graph/graph_edges.json
-  history_graph: data/outputs/graph/history_graph.json
-  graph_build_report: data/outputs/reports/graph_build_report.md
-  temporal_index: data/outputs/graph/temporal_index.json
-  temporal_index_report: data/outputs/reports/temporal_index_report.md
-  input_claims: data/claims/final_dataset.json
-  parsed_claims: data/outputs/claims/parsed_claims.json
-  claim_parse_errors: data/outputs/claims/claim_parse_errors.json
-  claim_parser_report: data/outputs/reports/claim_parser_report.md
-  graph_topk: data/outputs/retrieved/graph_topk.json
-  graph_hybrid_topk: data/outputs/retrieved/graph_hybrid_topk.json
-  graph_verified: data/outputs/verified/graph_hybrid_verified.json
+    corpus_dir: data/corpus
+    cleaned_pages: data/outputs/corpus/pages.json
+    cleaned_chunks: data/outputs/corpus/chunks.json
+    corpus_report: data/outputs/reports/corpus_cleaning_report.md
+    graph_schema: docs/graph_schema.md
+    extracted_chunks: data/outputs/graph/extracted_chunks.json
+    extracted_chunks_cleaned: data/outputs/graph/extracted_chunks_cleaned.json
+    extraction_errors: data/outputs/graph/extraction_errors.json
+    extraction_cleanup_report: data/outputs/reports/extraction_cleanup_report.md
+    entities_raw: data/outputs/graph/entities_raw.json
+    entities_aligned: data/outputs/graph/entities_aligned.json
+    entity_aliases: data/outputs/graph/entity_aliases.json
+    entity_alignment_decisions: data/outputs/graph/entity_alignment_decisions.json
+    entity_alignment_errors: data/outputs/graph/entity_alignment_errors.json
+    entity_alignment_report: data/outputs/reports/entity_alignment_report.md
+    graph_nodes: data/outputs/graph/graph_nodes.json
+    graph_edges: data/outputs/graph/graph_edges.json
+    history_graph: data/outputs/graph/history_graph.json
+    graph_build_report: data/outputs/reports/graph_build_report.md
+    temporal_index: data/outputs/graph/temporal_index.json
+    temporal_index_report: data/outputs/reports/temporal_index_report.md
+    input_claims: data/claims/final_dataset.json
+    parsed_claims: data/outputs/claims/parsed_claims.json
+    claim_parse_errors: data/outputs/claims/claim_parse_errors.json
+    claim_parser_report: data/outputs/reports/claim_parser_report.md
+    text_rag_topk: data/outputs/retrieved/hybrid_top5.json
+    graph_topk: data/outputs/retrieved/graph_topk.json
+    graph_retrieval_report: data/outputs/reports/graph_retrieval_report.md
+    graph_hybrid_topk: data/outputs/retrieved/graph_hybrid_topk.json
+    graph_hybrid_retrieval_report: data/outputs/reports/graph_hybrid_retrieval_report.md
+    graph_only_verified: data/outputs/verified/graph_only_verified.json
+    graph_only_verification_report: data/outputs/reports/graph_only_verification_report.md
+    graph_verified: data/outputs/verified/graph_hybrid_verified.json
+    graph_verification_report: data/outputs/reports/graph_hybrid_verification_report.md
 
 corpus_cleaning:
-  unicode_form: NFC
-  normalize_whitespace: true
-  min_chars: 80
-  keep_original_txt: true
+    unicode_form: NFC
+    normalize_whitespace: true
+    min_chars: 80
+    keep_original_txt: true
 
 chunking:
-  method: section_aware_rule_based
-  max_chars: 2200
-  min_chars: 120
-  overlap_prev_sections: 1
-  split_overlap_chars: 200
-  keep_page_trace: true
-  fallback_to_page_chunks: true
-  filter_exercise_blocks: true
+    method: section_aware_rule_based
+    max_chars: 2200
+    min_chars: 120
+    overlap_prev_sections: 1
+    split_overlap_chars: 200
+    keep_page_trace: true
+    fallback_to_page_chunks: true
+    filter_exercise_blocks: true
 
 schema:
-  node_types:
-    - DocumentChunk
-    - Person
-    - Organization
-    - Event
-    - Place
-    - Time
-    - Concept
-  edge_types:
-    - MENTIONS
-    - PARTICIPATED_IN
-    - OCCURRED_AT
-    - LOCATED_IN
-    - RELATED_TO
-    - CAUSES
-    - RESULTS_IN
-    - BEFORE
-    - AFTER
-    - SUPPORTED_BY
+    node_types:
+        - DocumentChunk
+        - Person
+        - Organization
+        - Event
+        - Place
+        - Time
+        - Concept
+    edge_types:
+        - MENTIONS
+        - PARTICIPATED_IN
+        - OCCURRED_AT
+        - LOCATED_IN
+        - RELATED_TO
+        - CAUSES
+        - RESULTS_IN
+        - BEFORE
+        - AFTER
+        - SUPPORTED_BY
 
 extraction:
-  provider: gemini_vertex
-  model: gemini-2.5-flash
-  location_env: GOOGLE_CLOUD_LOCATION
-  default_location: us-central1
-  temperature: 0.0
-  max_output_tokens: 8192
-  thinking_budget: 0
-  workers: 2
-  checkpoint_every: 25
-  max_input_chars: 2200
-  max_entities_per_chunk: 12
-  max_relations_per_chunk: 20
-  retry_attempts: 2
-  save_raw_response: false
+    provider: gemini_vertex
+    model: gemini-2.5-flash
+    location_env: GOOGLE_CLOUD_LOCATION
+    default_location: us-central1
+    temperature: 0.0
+    max_output_tokens: 8192
+    thinking_budget: 0
+    workers: 2
+    checkpoint_every: 25
+    max_input_chars: 2200
+    max_entities_per_chunk: 12
+    max_relations_per_chunk: 20
+    retry_attempts: 2
+    save_raw_response: false
 
 extraction_cleanup:
-  max_entities_per_chunk: 12
-  max_relations_per_chunk: 20
-  min_entity_confidence: 0.8
-  min_relation_confidence: 0.8
-  drop_long_concept_names_over_chars: 80
-  drop_generic_concepts:
-    - Khoa học
-    - Lịch sử loài người
-    - Trái Đất
-    - chiến tranh
-    - hòa bình
-    - kinh tế
-    - chính trị
-    - xã hội
+    max_entities_per_chunk: 12
+    max_relations_per_chunk: 20
+    min_entity_confidence: 0.8
+    min_relation_confidence: 0.8
+    drop_long_concept_names_over_chars: 80
+    drop_generic_concepts:
+        - Khoa học
+        - Lịch sử loài người
+        - Trái Đất
+        - chiến tranh
+        - hòa bình
+        - kinh tế
+        - chính trị
+        - xã hội
 
 entity_alignment:
-  provider: gemini_vertex
-  model: gemini-2.5-flash
-  location_env: GOOGLE_CLOUD_LOCATION
-  default_location: us-central1
-  temperature: 0.0
-  max_output_tokens: 2048
-  thinking_budget: 0
-  workers: 4
-  checkpoint_every: 10
-  retry_attempts: 2
-  min_merge_confidence: 0.8
-  max_group_entities: 12
-  max_contexts_per_entity: 2
-  max_candidate_groups: 300
-  enable_similarity_blocks: true
-  similarity_threshold: 0.85
-  enable_country_state_windows: true
-  seed_alias_groups:
-    - [Mỹ, Mĩ, Hoa Kỳ, Hoa Kì, Hợp chúng quốc Hoa Kỳ]
-    - [Liên Xô, Liên bang Xô viết, Liên bang Xô Viết]
-    - [Nguyễn Ái Quốc, Hồ Chí Minh, Nguyễn Tất Thành]
-    - [An Nam, Việt Nam, Đại Việt, Đại Cồ Việt]
-    - [Pháp, thực dân Pháp, đế quốc Pháp]
-    - [Nhật, Nhật Bản, phát xít Nhật]
-    - [Việt Minh, Mặt trận Việt Minh, Mặt trận Việt Nam độc lập đồng minh]
-  review_low_confidence: true
+    provider: gemini_vertex
+    model: gemini-2.5-flash
+    location_env: GOOGLE_CLOUD_LOCATION
+    default_location: us-central1
+    temperature: 0.0
+    max_output_tokens: 2048
+    thinking_budget: 0
+    workers: 4
+    checkpoint_every: 10
+    retry_attempts: 2
+    min_merge_confidence: 0.8
+    max_group_entities: 12
+    max_contexts_per_entity: 2
+    max_candidate_groups: 300
+    enable_similarity_blocks: true
+    similarity_threshold: 0.85
+    enable_country_state_windows: true
+    seed_alias_groups:
+        - [Mỹ, Mĩ, Hoa Kỳ, Hoa Kì, Hợp chúng quốc Hoa Kỳ]
+        - [Liên Xô, Liên bang Xô viết, Liên bang Xô Viết]
+        - [Nguyễn Ái Quốc, Hồ Chí Minh, Nguyễn Tất Thành]
+        - [An Nam, Việt Nam, Đại Việt, Đại Cồ Việt]
+        - [Pháp, thực dân Pháp, đế quốc Pháp]
+        - [Nhật, Nhật Bản, phát xít Nhật]
+        - [Việt Minh, Mặt trận Việt Minh, Mặt trận Việt Nam độc lập đồng minh]
+    review_low_confidence: true
 
 claim_parsing:
-  provider: gemini_vertex
-  model: gemini-2.5-flash
-  location_env: GOOGLE_CLOUD_LOCATION
-  default_location: us-central1
-  temperature: 0.0
-  max_output_tokens: 2048
-  thinking_budget: 0
-  workers: 4
-  checkpoint_every: 50
-  retry_attempts: 2
-  query_fields:
-    - key
-    - claim
-  max_alias_matches: 30
-  min_alias_chars: 4
-  max_llm_mentions: 20
-  max_llm_relations: 12
+    provider: gemini_vertex
+    model: gemini-2.5-flash
+    location_env: GOOGLE_CLOUD_LOCATION
+    default_location: us-central1
+    temperature: 0.0
+    max_output_tokens: 2048
+    thinking_budget: 0
+    workers: 4
+    checkpoint_every: 50
+    retry_attempts: 2
+    query_fields:
+        - key
+        - claim
+    max_alias_matches: 30
+    min_alias_chars: 4
+    max_llm_mentions: 20
+    max_llm_relations: 12
+
+graph_retrieval:
+    method: embedding_multihop
+    embedding_model: BAAI/bge-m3
+    device: auto
+    embedding_batch_size: 32
+    top_facts: 8
+    top_chunks: 3
+    top_dense_nodes: 50
+    top_dense_edges: 200
+    top_dense_chunks: 80
+    max_hops: 1
+    beam_size: 20
+    top_neighbors_per_node: 20
+    max_seed_nodes: 80
+    max_expand_degree: 80
+    top_paths: 20
+    report_seed_nodes: 10
+    hub_penalty: 0.15
+    hop_decay: 0.2
+    include_mention_edges: false
+    keyword_edge_token_limit: 20
+    keyword_chunk_token_limit: 20
+    max_token_edges: 500
+    max_token_chunks: 200
+    max_candidate_edges: 500
+    max_candidate_chunks: 250
+
+hybrid_retrieval:
+    top_text_chunks: 3
+    top_graph_facts: 5
+    top_graph_paths: 3
+    top_graph_chunks: 3
+
+openai:
+    model_env: OPENAI_MODEL
+    default_model: gpt-4o-mini
+    temperature: 0.0
+    max_tokens: 700
+
+graph_verification:
+    workers: 2
+    checkpoint_every: 10
+    max_chars_per_text_chunk: 1600
+    max_chars_per_graph_chunk: 1200
+
+graph_verification_gemini:
+    model: gemini-2.5-flash
+    location_env: GOOGLE_CLOUD_LOCATION
+    default_location: us-central1
+    temperature: 0.0
+    max_output_tokens: 700
+    thinking_budget: 0
