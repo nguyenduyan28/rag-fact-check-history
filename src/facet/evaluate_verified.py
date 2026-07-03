@@ -156,14 +156,17 @@ def normalize_prediction(row: dict) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate FacetGraphRAG verified labels.")
     parser.add_argument("--config", default="configs/facet/facet.yaml")
+    parser.add_argument("--input-path", default=None, help="Override verified input JSON.")
+    parser.add_argument("--output-report", default=None, help="Override accuracy report output.")
     args = parser.parse_args()
 
     config = load_yaml(args.config)
-    rows = load_json(config["paths"]["facet_verified"])
+    rows = load_json(args.input_path or config["paths"]["facet_verified"])
     report = build_report(rows)
-    save_text(report, config["paths"]["accuracy_report"])
+    output_report = args.output_report or config["paths"]["accuracy_report"]
+    save_text(report, output_report)
     print(report)
-    print(f"Saved report to {config['paths']['accuracy_report']}")
+    print(f"Saved report to {output_report}")
 
 
 if __name__ == "__main__":

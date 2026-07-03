@@ -32,12 +32,103 @@ def row_key(item: dict, index: int | None = None) -> str:
     return f"__idx_{index}"
 
 
+def get_thread_clients() -> dict[str, Any]:
+    if not getattr(_thread_local, "clients", None):
+        _thread_local.clients = {}
+    return _thread_local.clients
+
+
 def get_openai_client(api_key: str | None):
-    if not getattr(_thread_local, "client", None):
+    clients = get_thread_clients()
+    if "openai" not in clients:
         from openai import OpenAI
 
-        _thread_local.client = OpenAI(api_key=api_key, max_retries=0)
-    return _thread_local.client
+        clients["openai"] = OpenAI(api_key=api_key, max_retries=0)
+    return clients["openai"]
+
+
+def get_gemini_client(api_key: str | None):
+    clients = get_thread_clients()
+    client_key = "gemini_api" if api_key else "gemini_vertex"
+    if client_key in clients:
+        return clients[client_key]
+
+    from google import genai
+
+    if api_key:
+        clients[client_key] = genai.Client(api_key=api_key)
+        return clients[client_key]
+
+    project = (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("VERTEX_PROJECT_ID")
+        or os.getenv("GEMINI_PROJECT_ID")
+        or os.getenv("PROJECT_ID")
+    )
+    location = (
+        os.getenv("GOOGLE_CLOUD_LOCATION")
+        or os.getenv("VERTEX_LOCATION")
+        or os.getenv("PROJECT_LOCATION")
+        or "us-central1"
+    )
+    if not project:
+        raise RuntimeError(
+            "Gemini needs GEMINI_API_KEY/GOOGLE_API_KEY or a Vertex project via "
+            "GOOGLE_CLOUD_PROJECT, VERTEX_PROJECT_ID, GEMINI_PROJECT_ID, or PROJECT_ID."
+        )
+    clients[client_key] = genai.Client(vertexai=True, project=project, location=location)
+    return clients[client_key]
+
+
+def resolve_provider(config: dict, provider: str | None) -> str:
+    selected = (provider or config.get("verifier", {}).get("provider", "openai")).lower().strip()
+    if selected not in {"openai", "gemini"}:
+        raise ValueError(f"Unsupported verifier provider: {selected}")
+    return selected
+
+
+def resolve_model(config: dict, provider: str, model: str | None) -> str:
+    if model:
+        return model
+    verifier = config.get("verifier", {})
+    if provider == "gemini":
+        return os.getenv(
+            verifier.get("gemini_model_env", "GEMINI_MODEL"),
+            verifier.get("gemini_default_model", "gemini-2.5-flash"),
+        )
+    return os.getenv(verifier.get("model_env", "OPENAI_MODEL"), verifier.get("default_model", "gpt-4o-mini"))
+
+
+def resolve_api_key(provider: str) -> str | None:
+    if provider == "gemini":
+        return os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    return os.getenv("OPENAI_API_KEY")
+
+
+def model_slug(provider: str, model: str) -> str:
+    cleaned = re.sub(r"[^a-zA-Z0-9_.-]+", "-", model.strip()).strip("-").lower()
+    if provider == "openai" and cleaned.startswith("gpt"):
+        return cleaned
+    if provider == "gemini" and cleaned.startswith("gemini"):
+        return cleaned
+    return f"{provider}-{cleaned}"
+
+
+def resolve_output_path(
+    config: dict,
+    provider: str,
+    model: str,
+    output_path: str | None = None,
+    output_dir: str | None = None,
+) -> str:
+    if output_path:
+        return output_path
+    if output_dir:
+        return str(project_path(output_dir) / "facet_verified.json")
+    verify_root = config.get("paths", {}).get("verify_output_root")
+    if verify_root:
+        return str(project_path(verify_root) / model_slug(provider, model) / "facet_verified.json")
+    return config["paths"]["facet_verified"]
 
 
 def strip_code_fence(text: str) -> str:
@@ -113,7 +204,8 @@ Nhiệm vụ: dựa CHỈ trên evidence được cung cấp để quyết đị
 Quy tắc:
 - Chọn `real` nếu evidence ủng hộ các phần chính của claim.
 - Chọn `fake` nếu evidence mâu thuẫn rõ về thời gian, địa điểm, nhân vật, tổ chức, sự kiện, số lượng, nguyên nhân hoặc kết quả.
-- Nếu evidence thiếu hoặc không đủ ủng hộ claim, vẫn phải chọn `fake` và thêm `insufficient_evidence` vào wrong_facets.
+- Nếu evidence không đủ rõ, chọn nhãn hợp lý nhất dựa trên evidence hiện có và nêu lý do ngắn gọn.
+- Chỉ thêm `insufficient_evidence` vào wrong_facets khi evidence thật sự thiếu phần quan trọng làm bạn không thể ủng hộ claim.
 - Không dùng kiến thức ngoài evidence.
 
 Claim facets:
@@ -172,8 +264,9 @@ Nhiệm vụ: với MỖI item, dựa CHỈ trên evidence của item đó để
 
 Quy tắc:
 - Chọn `real` nếu evidence ủng hộ các phần chính của claim.
-- Chọn `fake` nếu evidence mâu thuẫn rõ hoặc evidence thiếu/không đủ ủng hộ claim.
-- Nếu evidence thiếu, vẫn phải chọn `fake` và thêm `insufficient_evidence` vào wrong_facets.
+- Chọn `fake` nếu evidence mâu thuẫn rõ về phần quan trọng của claim.
+- Nếu evidence không đủ rõ, chọn nhãn hợp lý nhất dựa trên evidence hiện có và nêu lý do ngắn gọn.
+- Chỉ thêm `insufficient_evidence` vào wrong_facets khi evidence thật sự thiếu phần quan trọng làm bạn không thể ủng hộ claim.
 - Không dùng kiến thức ngoài evidence.
 - Không trộn evidence giữa các item.
 
@@ -199,9 +292,8 @@ Items:
 """
 
 
-def call_openai_verify(item: dict, config: dict, api_key: str | None) -> dict:
+def call_openai_verify(item: dict, config: dict, api_key: str | None, model: str) -> dict:
     verifier = config.get("verifier", {})
-    model = os.getenv(verifier.get("model_env", "OPENAI_MODEL"), verifier.get("default_model", "gpt-4o-mini"))
     client = get_openai_client(api_key)
     timeout = float(verifier.get("request_timeout_seconds", 90))
     retry_attempts = int(verifier.get("retry_attempts", 2))
@@ -231,6 +323,7 @@ def call_openai_verify(item: dict, config: dict, api_key: str | None) -> dict:
                 "wrong_facets": wrong_facets,
                 "reasoning": str(parsed.get("reasoning", "")),
                 "raw_response": raw,
+                "verifier_provider": "openai",
                 "verifier_model": model,
             }
         except Exception as exc:
@@ -240,9 +333,8 @@ def call_openai_verify(item: dict, config: dict, api_key: str | None) -> dict:
     raise RuntimeError(str(last_error)) from last_error
 
 
-def call_openai_verify_batch(items: list[dict], config: dict, api_key: str | None) -> dict[str, dict]:
+def call_openai_verify_batch(items: list[dict], config: dict, api_key: str | None, model: str) -> dict[str, dict]:
     verifier = config.get("verifier", {})
-    model = os.getenv(verifier.get("model_env", "OPENAI_MODEL"), verifier.get("default_model", "gpt-4o-mini"))
     client = get_openai_client(api_key)
     timeout = float(verifier.get("request_timeout_seconds", 90))
     retry_attempts = int(verifier.get("retry_attempts", 2))
@@ -285,6 +377,110 @@ def call_openai_verify_batch(items: list[dict], config: dict, api_key: str | Non
                     "wrong_facets": normalize_wrong_facets(row.get("wrong_facets", [])),
                     "reasoning": str(row.get("reasoning", "")),
                     "raw_response": raw,
+                    "verifier_provider": "openai",
+                    "verifier_model": model,
+                }
+            missing = expected_ids - set(output)
+            if missing:
+                raise ValueError(f"Batch verifier response missing IDs: {sorted(missing)[:5]}")
+            return output
+        except Exception as exc:
+            last_error = exc
+            if attempt < retry_attempts:
+                time.sleep(retry_sleep * (attempt + 1))
+    raise RuntimeError(str(last_error)) from last_error
+
+
+def build_gemini_config(config: dict, max_output_tokens: int):
+    from google.genai import types
+
+    verifier = config.get("verifier", {})
+    kwargs = {
+        "temperature": float(verifier.get("temperature", 0.0)),
+        "max_output_tokens": max_output_tokens,
+        "response_mime_type": "application/json",
+    }
+    thinking_budget = verifier.get("gemini_thinking_budget")
+    if thinking_budget is not None:
+        try:
+            kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=int(thinking_budget))
+        except Exception:
+            pass
+    return types.GenerateContentConfig(**kwargs)
+
+
+def call_gemini_verify(item: dict, config: dict, api_key: str | None, model: str) -> dict:
+    verifier = config.get("verifier", {})
+    client = get_gemini_client(api_key)
+    retry_attempts = int(verifier.get("retry_attempts", 2))
+    retry_sleep = float(verifier.get("retry_sleep_seconds", 2))
+    last_error = None
+    prompt = "Bạn là hệ thống fact-checking, chỉ trả JSON hợp lệ.\n\n" + build_prompt(item, config)
+    for attempt in range(retry_attempts + 1):
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=build_gemini_config(config, int(verifier.get("max_tokens", 450))),
+            )
+            raw = response.text or ""
+            parsed = parse_json_object(raw)
+            return {
+                "label_rag": normalize_label(parsed.get("label")),
+                "confidence": safe_float(parsed.get("confidence")),
+                "evidence_ids": parsed.get("evidence_ids", []),
+                "wrong_facets": normalize_wrong_facets(parsed.get("wrong_facets", [])),
+                "reasoning": str(parsed.get("reasoning", "")),
+                "raw_response": raw,
+                "verifier_provider": "gemini",
+                "verifier_model": model,
+            }
+        except Exception as exc:
+            last_error = exc
+            if attempt < retry_attempts:
+                time.sleep(retry_sleep * (attempt + 1))
+    raise RuntimeError(str(last_error)) from last_error
+
+
+def call_gemini_verify_batch(items: list[dict], config: dict, api_key: str | None, model: str) -> dict[str, dict]:
+    verifier = config.get("verifier", {})
+    client = get_gemini_client(api_key)
+    retry_attempts = int(verifier.get("retry_attempts", 2))
+    retry_sleep = float(verifier.get("retry_sleep_seconds", 2))
+    max_tokens = max(
+        int(verifier.get("max_tokens", 450)),
+        int(verifier.get("batch_max_tokens_per_item", 280)) * len(items),
+    )
+    last_error = None
+    prompt = "Bạn là hệ thống fact-checking nhiều item, chỉ trả JSON hợp lệ.\n\n" + build_batch_prompt(items, config)
+    for attempt in range(retry_attempts + 1):
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=build_gemini_config(config, max_tokens),
+            )
+            raw = response.text or ""
+            parsed = parse_json_object(raw)
+            rows = parsed.get("items", [])
+            if not isinstance(rows, list):
+                raise ValueError("Batch verifier response must contain an items array")
+            expected_ids = {row_key(item) for item in items}
+            output = {}
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                item_id = str(row.get("ID", ""))
+                if item_id not in expected_ids:
+                    continue
+                output[item_id] = {
+                    "label_rag": normalize_label(row.get("label")),
+                    "confidence": safe_float(row.get("confidence")),
+                    "evidence_ids": row.get("evidence_ids", []),
+                    "wrong_facets": normalize_wrong_facets(row.get("wrong_facets", [])),
+                    "reasoning": str(row.get("reasoning", "")),
+                    "raw_response": raw,
+                    "verifier_provider": "gemini",
                     "verifier_model": model,
                 }
             missing = expected_ids - set(output)
@@ -347,7 +543,25 @@ def normalize_wrong_facets(value: Any) -> list[str]:
     return output
 
 
-def verify_row(item: dict, config: dict, api_key: str | None) -> dict:
+def call_model_verify(item: dict, config: dict, provider: str, api_key: str | None, model: str) -> dict:
+    if provider == "gemini":
+        return call_gemini_verify(item, config, api_key, model)
+    return call_openai_verify(item, config, api_key, model)
+
+
+def call_model_verify_batch(
+    items: list[dict],
+    config: dict,
+    provider: str,
+    api_key: str | None,
+    model: str,
+) -> dict[str, dict]:
+    if provider == "gemini":
+        return call_gemini_verify_batch(items, config, api_key, model)
+    return call_openai_verify_batch(items, config, api_key, model)
+
+
+def verify_row(item: dict, config: dict, provider: str, api_key: str | None, model: str) -> dict:
     result = {
         "ID": item.get("ID"),
         "row_index": item.get("row_index"),
@@ -361,7 +575,7 @@ def verify_row(item: dict, config: dict, api_key: str | None) -> dict:
         "top_evidence": item.get("top_evidence", []),
     }
     try:
-        result.update(call_openai_verify(item, config, api_key))
+        result.update(call_model_verify(item, config, provider, api_key, model))
     except Exception as exc:
         result.update(
             {
@@ -371,6 +585,7 @@ def verify_row(item: dict, config: dict, api_key: str | None) -> dict:
                 "wrong_facets": [],
                 "reasoning": "",
                 "raw_response": "",
+                "verifier_provider": provider,
                 "verifier_model": "",
                 "error": str(exc),
             }
@@ -394,14 +609,20 @@ def base_result(item: dict) -> dict:
     }
 
 
-def verify_batch(batch: list[tuple[int, dict]], config: dict, api_key: str | None) -> list[dict]:
+def verify_batch(
+    batch: list[tuple[int, dict]],
+    config: dict,
+    provider: str,
+    api_key: str | None,
+    model: str,
+) -> list[dict]:
     items = [row for _, row in batch]
     try:
-        verified_by_id = call_openai_verify_batch(items, config, api_key)
+        verified_by_id = call_model_verify_batch(items, config, provider, api_key, model)
     except Exception:
         if len(batch) == 1:
             raise
-        return [verify_row(row, config, api_key) for _, row in batch]
+        return [verify_row(row, config, provider, api_key, model) for _, row in batch]
     output = []
     for _, item in batch:
         result = base_result(item)
@@ -438,15 +659,22 @@ def run_verify(
     workers: int | None = None,
     batch_size: int | None = None,
     no_resume: bool = False,
+    input_path: str | None = None,
+    output_path: str | None = None,
+    output_dir: str | None = None,
+    provider: str | None = None,
+    model: str | None = None,
 ) -> list[dict]:
-    rows = load_json(config["paths"]["facet_reranked"])
+    provider_name = resolve_provider(config, provider)
+    model_name = resolve_model(config, provider_name, model)
+    rows = load_json(input_path or config["paths"]["facet_reranked"])
     if balanced:
         rows = select_balanced(rows, limit)
     elif limit is not None:
         rows = rows[:limit]
 
-    output_path = config["paths"]["facet_verified"]
-    completed = {} if no_resume else load_completed(output_path)
+    verified_path = resolve_output_path(config, provider_name, model_name, output_path, output_dir)
+    completed = {} if no_resume else load_completed(verified_path)
     pending = [(index, row) for index, row in enumerate(rows) if row_key(row, index) not in completed]
 
     verifier = config.get("verifier", {})
@@ -455,19 +683,21 @@ def run_verify(
     checkpoint_every = max(1, int(verifier.get("checkpoint_every", 25)))
     worker_count = max(1, worker_count)
     batch_size = max(1, batch_size)
-    api_key = os.getenv("OPENAI_API_KEY")
-    verify_environment(api_key)
+    api_key = resolve_api_key(provider_name)
+    verify_environment(provider_name, api_key)
     pending_batches = chunk_pending(pending, batch_size)
 
     print(f"Loaded {len(rows)} rows for verification")
     print(f"Loaded completed verified rows: {len(completed)}")
+    print(f"Verifier: provider={provider_name} model={model_name}")
     print(f"Verifying {len(pending)} pending rows with {worker_count} worker(s)")
     print(f"Batch size: {batch_size}; batches: {len(pending_batches)}")
+    print(f"Output: {verified_path}")
 
     new_completed = 0
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         futures = {
-            executor.submit(verify_batch, batch, config, api_key): batch
+            executor.submit(verify_batch, batch, config, provider_name, api_key, model_name): batch
             for batch in pending_batches
         }
         for future in tqdm(as_completed(futures), total=len(futures), desc="Verifying facet batches"):
@@ -477,32 +707,57 @@ def run_verify(
                 completed[row_key(result)] = result
             new_completed += len(results)
             if new_completed % checkpoint_every == 0:
-                save_json(ordered_rows(rows, completed), output_path)
+                save_json(ordered_rows(rows, completed), verified_path)
 
     verified = ordered_rows(rows, completed)
-    save_json(verified, output_path)
+    save_json(verified, verified_path)
     return verified
 
 
-def verify_environment(api_key: str | None) -> None:
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is missing. Put it in .env or export it before running verifier.")
+def verify_environment(provider: str, api_key: str | None) -> None:
+    if provider == "openai":
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY is missing. Put it in .env or export it before running verifier.")
+        try:
+            import openai  # noqa: F401
+        except ImportError as exc:
+            raise RuntimeError(
+                "Python package 'openai' is not installed in this environment. "
+                "Run: pip install -r requirements.txt"
+            ) from exc
+        return
+
     try:
-        import openai  # noqa: F401
+        from google import genai  # noqa: F401
     except ImportError as exc:
         raise RuntimeError(
-            "Python package 'openai' is not installed in this environment. "
+            "Python package 'google-genai' is not installed in this environment. "
             "Run: pip install -r requirements.txt"
         ) from exc
+    if not api_key and not (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("VERTEX_PROJECT_ID")
+        or os.getenv("GEMINI_PROJECT_ID")
+        or os.getenv("PROJECT_ID")
+    ):
+        raise RuntimeError(
+            "Gemini verifier needs GEMINI_API_KEY/GOOGLE_API_KEY, or Vertex env "
+            "GOOGLE_CLOUD_PROJECT/VERTEX_PROJECT_ID/GEMINI_PROJECT_ID/PROJECT_ID."
+        )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Verify FacetGraphRAG evidence with an OpenAI model.")
+    parser = argparse.ArgumentParser(description="Verify FacetGraphRAG evidence with OpenAI or Gemini.")
     parser.add_argument("--config", default="configs/facet/facet.yaml")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--balanced", action="store_true", help="Use a balanced real/fake prefix sample.")
     parser.add_argument("--workers", type=int, default=None)
-    parser.add_argument("--batch-size", type=int, default=None, help="Claims per OpenAI verifier request.")
+    parser.add_argument("--batch-size", type=int, default=None, help="Claims per verifier request.")
+    parser.add_argument("--provider", choices=["openai", "gemini"], default=None)
+    parser.add_argument("--model", default=None, help="Override verifier model name.")
+    parser.add_argument("--input-path", default=None, help="Override verifier input JSON.")
+    parser.add_argument("--output-path", default=None, help="Override verifier output JSON.")
+    parser.add_argument("--output-dir", default=None, help="Directory for facet_verified.json.")
     parser.add_argument("--no-resume", action="store_true")
     args = parser.parse_args()
 
@@ -515,8 +770,16 @@ def main() -> None:
         workers=args.workers,
         batch_size=args.batch_size,
         no_resume=args.no_resume,
+        input_path=args.input_path,
+        output_path=args.output_path,
+        output_dir=args.output_dir,
+        provider=args.provider,
+        model=args.model,
     )
-    print(f"Saved {len(rows)} verified rows to {config['paths']['facet_verified']}")
+    provider_name = resolve_provider(config, args.provider)
+    model_name = resolve_model(config, provider_name, args.model)
+    saved_path = resolve_output_path(config, provider_name, model_name, args.output_path, args.output_dir)
+    print(f"Saved {len(rows)} verified rows to {saved_path}")
 
 
 if __name__ == "__main__":

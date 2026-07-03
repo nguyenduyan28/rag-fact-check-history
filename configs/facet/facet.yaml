@@ -5,15 +5,20 @@ paths:
   edges: data/outputs/graph/graph_edges.json
   aliases: data/outputs/graph/entity_aliases.json
   temporal_index: data/outputs/graph/temporal_index.json
+  text_retrieved: data/outputs/retrieved/hybrid_top5.json
   output_dir: data/outputs/facet
   claim_facets: data/outputs/facet/claim_facets.json
   facet_matches: data/outputs/facet/facet_matches.json
   facet_evidence: data/outputs/facet/facet_evidence.json
   facet_reranked: data/outputs/facet/facet_reranked.json
+  hybrid_facet_reranked: data/outputs/facet/hybrid_facet_reranked.json
   facet_verified: data/outputs/facet/facet_verified.json
+  hybrid_facet_verified: data/outputs/facet/hybrid_facet_verified.json
   run_report: data/outputs/facet/facet_run_report.json
   eda_report: data/outputs/facet/facet_eda_report.md
   accuracy_report: data/outputs/facet/facet_accuracy_report.md
+  hybrid_accuracy_report: data/outputs/facet/hybrid_facet_accuracy_report.md
+  verify_output_root: data/outputs/facet/verify
 
 run:
   limit: 200
@@ -94,10 +99,19 @@ rerank:
   temporal_weight: 0.20
   text_overlap_weight: 0.10
 
+fusion:
+  text_top_k: 3
+  graph_top_k: 3
+  max_total_evidence: 6
+  max_chars_per_evidence: 1400
+
 verifier:
   provider: openai
   model_env: OPENAI_MODEL
   default_model: gpt-4o-mini
+  gemini_model_env: GEMINI_MODEL
+  gemini_default_model: gemini-2.5-flash
+  gemini_thinking_budget: 0
   temperature: 0.0
   max_tokens: 450
   request_timeout_seconds: 90
