@@ -1,0 +1,18 @@
+paths:
+  corpus_dir: data/corpus
+  corpus_path: data/outputs/corpus/chunks.json
+  input_claims: data/claims/final_dataset.json
+  output_retrieved: data/outputs/retrieved/dense_top5_nokey.json
+
+models:
+  embedding: BAAI/bge-m3
+  device: auto
+
+retrieval:
+  method: dense
+  bm25_top_k: 20
+  dense_top_k: 20
+  rrf_k: 60
+  final_top_k: 5
+  query_fields:
+    - claim

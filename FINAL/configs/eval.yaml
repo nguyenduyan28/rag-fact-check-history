@@ -1,0 +1,3 @@
+paths:
+  input_verified: data/outputs/verified/hybrid_top5_verified.json
+  output_report: data/outputs/reports/hybrid_top5_report.txt
