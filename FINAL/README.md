@@ -114,8 +114,8 @@ Xem bảng đầy đủ tại `ket_qua/KET_QUA.md`. Tóm tắt:
 |---|---|---:|---:|
 | Dense (BGE-M3) | 2.000 cân bằng | 84,60% | 84,55% |
 | BM25 | 2.000 cân bằng | 87,45% | 87,45% |
-| Facet Graph RAG (đề xuất) | 2.000 cân bằng | 88,10% | 88,10% |
 | Hybrid (BM25+BGE-M3+RRF) | 2.000 cân bằng | 87,05% | 87,05% |
+| Facet Graph RAG (đề xuất) | 2.000 cân bằng | 88,10% | 88,10% |
 | **Facet Graph RAG (đề xuất)** | **11.344 toàn bộ** | **81,46%** | **79,37%** |
 | Oracle (chẩn đoán) | 500 cân bằng | 99,80% | — |
 
