@@ -23,7 +23,7 @@ def text_overlap_score(claim: str, text: str) -> float:
     return len(claim_tokens & text_tokens) / len(claim_tokens)
 
 
-def score_evidence(row: dict, evidence: dict, config: dict) -> dict:
+def score_evidence(row: dict, evidence: dict, config: dict, hub_counts: dict[str, int] | None = None) -> dict:
     weights = config.get("rerank", {})
     total_facets = max(1, int(row.get("facet_match_summary", {}).get("total_facets", 0) or 0))
     facet_keys = {
@@ -42,22 +42,29 @@ def score_evidence(row: dict, evidence: dict, config: dict) -> dict:
         + float(weights.get("temporal_weight", 0.20)) * temporal_score
         + float(weights.get("text_overlap_weight", 0.10)) * overlap
     )
+    hub_penalty_weight = float(weights.get("hub_penalty_weight", 0.0))
+    hub_freq = int((hub_counts or {}).get(evidence.get("chunk_id"), 0))
+    if hub_penalty_weight > 0.0 and hub_freq > 0:
+        score = score / (1.0 + hub_penalty_weight * math.log1p(hub_freq))
+    scores = {
+        "final": score,
+        "facet_coverage": facet_coverage,
+        "relation": relation_score,
+        "temporal": temporal_score,
+        "text_overlap": overlap,
+    }
+    if hub_penalty_weight > 0.0:
+        scores["hub_freq"] = hub_freq
     return {
         **evidence,
-        "scores": {
-            "final": score,
-            "facet_coverage": facet_coverage,
-            "relation": relation_score,
-            "temporal": temporal_score,
-            "text_overlap": overlap,
-        },
+        "scores": scores,
     }
 
 
-def rerank_row(row: dict, config: dict) -> dict:
+def rerank_row(row: dict, config: dict, hub_counts: dict[str, int] | None = None) -> dict:
     top_k = int(config.get("rerank", {}).get("top_k", 8))
     max_chars = int(config.get("evidence", {}).get("max_chunk_chars", 1400))
-    scored = [score_evidence(row, evidence, config) for evidence in row.get("evidence", [])]
+    scored = [score_evidence(row, evidence, config, hub_counts) for evidence in row.get("evidence", [])]
     scored.sort(key=lambda item: (-item["scores"]["final"], item["chunk_id"]))
     for item in scored:
         item["text"] = item.get("text", "")[:max_chars]
@@ -84,9 +91,21 @@ def rerank_row(row: dict, config: dict) -> dict:
     }
 
 
+def build_hub_counts(rows: list[dict]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        for chunk_id in {evidence.get("chunk_id") for evidence in row.get("evidence", [])}:
+            if chunk_id:
+                counts[chunk_id] = counts.get(chunk_id, 0) + 1
+    return counts
+
+
 def run_rerank(config: dict) -> list[dict]:
     rows = load_json(config["paths"]["facet_evidence"])
-    output = [rerank_row(row, config) for row in tqdm(rows, desc="Reranking evidence")]
+    hub_counts = None
+    if float(config.get("rerank", {}).get("hub_penalty_weight", 0.0)) > 0.0:
+        hub_counts = build_hub_counts(rows)
+    output = [rerank_row(row, config, hub_counts) for row in tqdm(rows, desc="Reranking evidence")]
     save_json(output, config["paths"]["facet_reranked"])
     return output
 

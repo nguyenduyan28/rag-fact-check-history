@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Facet Graph RAG — Kiến trúc</title>
+<style>
+  body { background:#fff; font-family:'Segoe UI',Arial,sans-serif; display:flex; flex-direction:column; align-items:center; padding:24px; }
+  .caption { font-size:14px; color:#111; margin-top:12px; max-width:1150px; text-align:center; line-height:1.5; }
+  svg text { font-family:'Segoe UI',Arial,sans-serif; }
+</style>
+</head>
+<body>
+<svg width="1500" height="740" viewBox="0 0 1500 740">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#475569"/>
+    </marker>
+    <!-- huy hiệu trụ nhỏ (kho dữ liệu dùng lại) -->
+    <g id="minicyl">
+      <path d="M 0 4 a 13 4 0 0 0 26 0 v 12 a 13 4 0 0 1 -26 0 z" fill="#dbeafe" stroke="#60a5fa" stroke-width="1"/>
+      <ellipse cx="13" cy="4" rx="13" ry="4" fill="#eff6ff" stroke="#60a5fa" stroke-width="1"/>
+    </g>
+  </defs>
+
+  <!-- ================== BAND 1: INDEXING ================== -->
+  <rect x="15" y="20" width="1470" height="262" rx="10" fill="none" stroke="#9ca3af" stroke-dasharray="7 5"/>
+  <text x="34" y="48" font-size="15" font-weight="700" fill="#374151">PHA LẬP CHỈ MỤC</text>
+  <text x="198" y="48" font-size="12" fill="#6b7280" font-style="italic">(Indexing — thực hiện một lần)</text>
+
+  <!-- Book -->
+  <g>
+    <rect x="57" y="122" width="112" height="72" rx="4" fill="#fef9c3" stroke="#ca8a04"/>
+    <rect x="51" y="116" width="112" height="72" rx="4" fill="#fef9c3" stroke="#ca8a04"/>
+    <rect x="45" y="110" width="112" height="72" rx="4" fill="#fefce8" stroke="#ca8a04"/>
+    <text x="101" y="138" font-size="12" text-anchor="middle" font-weight="600">SGK Lịch sử</text>
+    <text x="101" y="154" font-size="12" text-anchor="middle" font-weight="600">10 · 11 · 12</text>
+    <text x="101" y="172" font-size="10.5" text-anchor="middle" fill="#57534e">591 trang OCR</text>
+  </g>
+
+  <!-- (1) chunking -->
+  <g>
+    <rect x="210" y="112" width="220" height="80" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+    <circle cx="226" cy="127" r="10" fill="#111"/><text x="226" y="131.5" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">1</text>
+    <text x="326" y="134" font-size="12.5" text-anchor="middle" font-weight="600">Làm sạch &amp; phân đoạn</text>
+    <text x="320" y="151" font-size="11" text-anchor="middle" fill="#374151">theo sách – bài – mục</text>
+    <text x="320" y="176" font-size="11" text-anchor="middle" fill="#57534e">540 đoạn văn + metadata năm</text>
+  </g>
+  <line x1="169" y1="152" x2="206" y2="152" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- fork từ (1): lên (2), xuống (3) — hai khuỷu song song tại x=460 -->
+  <path d="M 430 152 H 460 V 85  H 496" fill="none" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+  <path d="M 430 152 H 460 V 216 H 496" fill="none" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- (2) text indexing : hàng trên -->
+  <g>
+    <rect x="500" y="50" width="230" height="70" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+    <circle cx="516" cy="65" r="10" fill="#111"/><text x="516" y="69.5" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">2</text>
+    <text x="622" y="72" font-size="12.5" text-anchor="middle" font-weight="600">Lập chỉ mục văn bản</text>
+    <text x="615" y="94" font-size="11" text-anchor="middle" fill="#374151">BM25 + vec-tơ BGE-M3</text>
+  </g>
+  <line x1="730" y1="85" x2="784" y2="85" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+  <!-- Text Index cylinder -->
+  <g>
+    <path d="M 790 55 a 62 12 0 0 0 124 0 v 50 a 62 12 0 0 1 -124 0 z" fill="#dbeafe" stroke="#60a5fa"/>
+    <ellipse cx="852" cy="55" rx="62" ry="12" fill="#eff6ff" stroke="#60a5fa"/>
+    <text x="852" y="86" font-size="12" text-anchor="middle" font-weight="600">Text Index</text>
+    <text x="852" y="102" font-size="10" text-anchor="middle" fill="#374151">BM25 · dense 1024d</text>
+  </g>
+
+  <!-- (3) KG extraction : hàng dưới -->
+  <g>
+    <rect x="500" y="181" width="230" height="70" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+    <circle cx="516" cy="196" r="10" fill="#111"/><text x="516" y="200.5" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">3</text>
+    <text x="628" y="203" font-size="12.5" text-anchor="middle" font-weight="600">Trích xuất thực thể–quan hệ</text>
+    <text x="600" y="225" font-size="11" text-anchor="middle" fill="#374151">+ căn chỉnh bí danh</text>
+    <rect x="672" y="212" width="42" height="18" rx="9" fill="#ede9fe" stroke="#a78bfa"/>
+    <text x="693" y="225" font-size="10" text-anchor="middle" fill="#6d28d9" font-weight="700">LLM</text>
+  </g>
+  <line x1="730" y1="216" x2="784" y2="216" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+  <!-- group: kho tri thức có cấu trúc -->
+  <g>
+    <rect x="790" y="158" width="400" height="112" rx="8" fill="none" stroke="#93c5fd" stroke-dasharray="4 3"/>
+    <path d="M 815 190 a 70 12 0 0 0 140 0 v 44 a 70 12 0 0 1 -140 0 z" fill="#dbeafe" stroke="#60a5fa"/>
+    <ellipse cx="885" cy="190" rx="70" ry="12" fill="#eff6ff" stroke="#60a5fa"/>
+    <text x="885" y="219" font-size="11.5" text-anchor="middle" font-weight="600">Đồ thị tri thức</text>
+    <text x="885" y="234" font-size="9.5" text-anchor="middle" fill="#374151">3.599 nút · 4.867 cạnh có kiểu</text>
+    <path d="M 1015 190 a 62 12 0 0 0 124 0 v 44 a 62 12 0 0 1 -124 0 z" fill="#dbeafe" stroke="#60a5fa"/>
+    <ellipse cx="1077" cy="190" rx="62" ry="12" fill="#eff6ff" stroke="#60a5fa"/>
+    <text x="1077" y="219" font-size="11.5" text-anchor="middle" font-weight="600">Chỉ mục thời gian</text>
+    <text x="1077" y="234" font-size="9.5" text-anchor="middle" fill="#374151">297 năm (1000–2020)</text>
+  </g>
+
+  <!-- ================== BAND 2: QUERYING ================== -->
+  <rect x="15" y="306" width="1470" height="414" rx="10" fill="none" stroke="#9ca3af" stroke-dasharray="7 5"/>
+  <text x="34" y="334" font-size="15" font-weight="700" fill="#374151">PHA SUY LUẬN</text>
+  <text x="180" y="334" font-size="12" fill="#6b7280" font-style="italic">(Querying — cho từng nhận định)</text>
+
+  <!-- claim (giữa 2 làn) -->
+  <g>
+    <rect x="45" y="480" width="140" height="72" rx="16" fill="#dcfce7" stroke="#4ade80"/>
+    <text x="115" y="510" font-size="12.5" text-anchor="middle" font-weight="700">Nhận định</text>
+    <text x="115" y="528" font-size="11.5" text-anchor="middle">cần kiểm chứng</text>
+  </g>
+  <!-- fork claim: lên làn text, xuống làn graph — khuỷu tại x=220 -->
+  <path d="M 185 516 H 220 V 420 H 256" fill="none" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+  <path d="M 185 516 H 220 V 612 H 256" fill="none" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- LÀN TEXT (trên): (5) -->
+  <g>
+    <rect x="260" y="372" width="260" height="96" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+    <circle cx="276" cy="387" r="10" fill="#111"/><text x="276" y="391.5" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">5</text>
+    <text x="390" y="394" font-size="12.5" text-anchor="middle" font-weight="600">Truy xuất Hybrid</text>
+    <text x="376" y="412" font-size="11" text-anchor="middle" fill="#374151">BM25 ∥ BGE-M3 → RRF (k=60)</text>
+    <rect x="300" y="424" width="140" height="24" rx="4" fill="#e0f2fe" stroke="#38bdf8"/>
+    <text x="370" y="440" font-size="11" text-anchor="middle" font-weight="600">top-5 đoạn văn bản</text>
+    <use href="#minicyl" x="466" y="380"/><text x="479" y="416" font-size="8.5" text-anchor="middle" fill="#1d4ed8">Text Index</text>
+  </g>
+
+  <!-- LÀN GRAPH (dưới): (4) -> (6) -->
+  <g>
+    <rect x="260" y="564" width="260" height="96" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+    <circle cx="276" cy="579" r="10" fill="#111"/><text x="276" y="583.5" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">4</text>
+    <text x="382" y="586" font-size="12.5" text-anchor="middle" font-weight="600">Phân rã 9 khía cạnh</text>
+    <text x="380" y="604" font-size="10" text-anchor="middle" fill="#374151">person · organization · event · place · time</text>
+    <text x="380" y="618" font-size="10" text-anchor="middle" fill="#374151">concept · quantity · action · result</text>
+    <rect x="359" y="630" width="42" height="18" rx="9" fill="#ede9fe" stroke="#a78bfa"/>
+    <text x="380" y="643" font-size="10" text-anchor="middle" fill="#6d28d9" font-weight="700">LLM</text>
+  </g>
+  <line x1="520" y1="612" x2="596" y2="612" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+  <g>
+    <rect x="600" y="564" width="300" height="96" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+    <circle cx="616" cy="579" r="10" fill="#111"/><text x="616" y="583.5" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">6</text>
+    <text x="742" y="586" font-size="12.5" text-anchor="middle" font-weight="600">Truy xuất đồ thị</text>
+    <text x="732" y="604" font-size="10" text-anchor="middle" fill="#374151">khớp nút: bí danh → chuẩn hóa → chuỗi con → năm</text>
+    <text x="732" y="618" font-size="10" text-anchor="middle" fill="#374151">mention · quan hệ 1-hop · chỉ mục năm</text>
+    <rect x="640" y="630" width="186" height="22" rx="4" fill="#e0f2fe" stroke="#38bdf8"/>
+    <text x="733" y="645" font-size="10.5" text-anchor="middle" font-weight="600">rerank heuristic → top-3 đoạn</text>
+    <use href="#minicyl" x="846" y="572"/><text x="859" y="608" font-size="8.5" text-anchor="middle" fill="#1d4ed8">Đồ thị · Năm</text>
+  </g>
+
+  <!-- hội tụ vào (7): hai khuỷu song song tại x=940 -->
+  <path d="M 520 420 H 940 V 500 H 966" fill="none" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+  <path d="M 900 612 H 940 V 548 H 966" fill="none" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- (7) fusion -->
+  <g>
+    <rect x="970" y="470" width="190" height="108" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+    <circle cx="986" cy="485" r="10" fill="#111"/><text x="986" y="489.5" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">7</text>
+    <text x="1074" y="492" font-size="12.5" text-anchor="middle" font-weight="600">Hợp nhất 5 + 3</text>
+    <text x="1065" y="509" font-size="10" text-anchor="middle" fill="#374151">bổ sung, không thay thế · khử trùng</text>
+    <rect x="990" y="520" width="150" height="44" rx="4" fill="#fff7ed" stroke="#fb923c"/>
+    <text x="1065" y="537" font-size="11" text-anchor="middle" font-weight="600">Smart crop 1.400 ký tự</text>
+    <text x="1065" y="553" font-size="9.5" text-anchor="middle" fill="#57534e">cửa sổ trùng claim nhiều nhất</text>
+  </g>
+  <line x1="1160" y1="524" x2="1196" y2="524" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- (8) verify -->
+  <g>
+    <rect x="1200" y="480" width="150" height="88" rx="6" fill="#f8fafc" stroke="#94a3b8"/>
+    <circle cx="1216" cy="495" r="10" fill="#111"/><text x="1216" y="499.5" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">8</text>
+    <text x="1283" y="502" font-size="12.5" text-anchor="middle" font-weight="600">Kiểm chứng</text>
+    <rect x="1224" y="514" width="46" height="18" rx="9" fill="#ede9fe" stroke="#a78bfa"/>
+    <text x="1247" y="527" font-size="10" text-anchor="middle" fill="#6d28d9" font-weight="700">LLM</text>
+    <text x="1305" y="528" font-size="10.5" fill="#374151">Gemini</text>
+    <text x="1275" y="552" font-size="10.5" text-anchor="middle" fill="#b91c1c" font-weight="600">1 lần gọi duy nhất</text>
+  </g>
+
+  <!-- output: thẳng đứng dưới (8) -->
+  <line x1="1275" y1="568" x2="1275" y2="600" stroke="#475569" stroke-width="1.6" marker-end="url(#arr)"/>
+  <g>
+    <rect x="1150" y="604" width="250" height="104" rx="8" fill="#dbeafe" stroke="#60a5fa"/>
+    <text x="1275" y="624" font-size="12" text-anchor="middle" font-weight="700">KẾT QUẢ</text>
+    <text x="1166" y="643" font-size="10.5">• Nhãn đúng / sai + độ tin cậy</text>
+    <text x="1166" y="660" font-size="10.5">• Bằng chứng trích dẫn E1…E8 (sách/trang)</text>
+    <text x="1166" y="677" font-size="10.5">• Khía cạnh sai (time, place, …)</text>
+    <text x="1166" y="694" font-size="10.5">• Lời giải thích bám bằng chứng</text>
+  </g>
+</svg>
+<div class="caption"><b>Hình:</b> Tổng quan Facet Graph RAG. Pha lập chỉ mục (trên) xây Text Index và kho tri thức có cấu trúc từ SGK;
+pha suy luận (dưới) truy xuất song song hai kênh rồi hợp nhất 5+3, smart crop và kiểm chứng bằng một lần gọi LLM.
+Biểu tượng trụ nhỏ <svg width="18" height="14" viewBox="0 0 26 22" style="vertical-align:-2px"><path d="M 0 4 a 13 4 0 0 0 26 0 v 12 a 13 4 0 0 1 -26 0 z" fill="#dbeafe" stroke="#60a5fa"/><ellipse cx="13" cy="4" rx="13" ry="4" fill="#eff6ff" stroke="#60a5fa"/></svg>
+trong ô truy xuất cho biết ô đó sử dụng kho chỉ mục tương ứng đã xây ở pha lập chỉ mục.</div>
+</body>
+</html>

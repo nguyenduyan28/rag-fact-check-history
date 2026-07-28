@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Bảo vệ KLTN — Facet Graph RAG</title>
+<style>
+  :root { --blue:#1d4ed8; --blue-l:#dbeafe; --ink:#0f172a; --mut:#64748b; --green:#15803d; --red:#b91c1c; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:#1e293b; font-family:'Segoe UI',Arial,sans-serif; color:var(--ink);
+         display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .deck { position:relative; width:1280px; height:720px; }
+  .slide { position:absolute; inset:0; background:#fff; border-radius:8px; padding:56px 72px 64px;
+           display:none; flex-direction:column; overflow:hidden; }
+  .slide.active { display:flex; }
+  .head { border-left:8px solid var(--blue); padding-left:18px; margin-bottom:28px; }
+  .head h2 { font-size:34px; color:var(--blue); font-weight:800; }
+  .head .sub { font-size:16px; color:var(--mut); margin-top:4px; }
+  .foot { position:absolute; bottom:18px; left:72px; right:72px; display:flex; justify-content:space-between;
+          font-size:13px; color:var(--mut); border-top:1px solid #e2e8f0; padding-top:8px; }
+  ul.big { font-size:22px; line-height:1.65; padding-left:26px; }
+  ul.big li { margin-bottom:10px; }
+  .cols { display:flex; gap:36px; flex:1; }
+  .col { flex:1; }
+  table { border-collapse:collapse; width:100%; font-size:19px; }
+  th { background:var(--blue); color:#fff; padding:9px 12px; text-align:center; font-size:18px; }
+  td { border:1px solid #cbd5e1; padding:8px 12px; text-align:center; }
+  td.l { text-align:left; }
+  tr.hl td { background:#fef9c3; font-weight:700; }
+  tr.pro td { background:var(--blue-l); font-weight:700; }
+  .box { border:1.5px solid #cbd5e1; border-radius:10px; padding:16px 20px; background:#f8fafc; }
+  .box.g { background:#f0fdf4; border-color:#86efac; }
+  .box.b { background:var(--blue-l); border-color:#93c5fd; }
+  .box.o { background:#fff7ed; border-color:#fdba74; }
+  .kpi { display:flex; gap:24px; }
+  .kpi .box { flex:1; text-align:center; }
+  .kpi .n { font-size:44px; font-weight:800; color:var(--blue); }
+  .kpi .t { font-size:15px; color:var(--mut); margin-top:4px; }
+  .bar { display:flex; align-items:center; gap:12px; margin:14px 0; }
+  .bar .lbl { width:330px; font-size:18px; text-align:right; }
+  .bar .tr { flex:1; background:#eef2f7; border-radius:6px; height:38px; position:relative; }
+  .bar .fill { height:100%; border-radius:6px; background:var(--blue); display:flex; align-items:center;
+               justify-content:flex-end; color:#fff; font-weight:700; font-size:17px; padding-right:10px; }
+  .note { font-size:15px; color:var(--mut); font-style:italic; margin-top:auto; }
+  .tag { display:inline-block; background:#ede9fe; color:#6d28d9; border-radius:10px; padding:1px 10px;
+         font-size:14px; font-weight:700; }
+  .quote { border-left:5px solid var(--blue); background:#f8fafc; padding:14px 20px; font-size:19px; line-height:1.6; }
+  .nav { position:fixed; bottom:14px; right:20px; color:#94a3b8; font-size:14px; user-select:none; }
+  h3 { font-size:22px; color:var(--blue); margin-bottom:10px; }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- ===== 1. TITLE ===== -->
+<section class="slide active" style="justify-content:center; text-align:center;">
+  <div style="font-size:17px; color:var(--mut); letter-spacing:1px;">TRƯỜNG ĐẠI HỌC KHOA HỌC TỰ NHIÊN, ĐHQG-HCM · KHOA CÔNG NGHỆ THÔNG TIN</div>
+  <h1 style="font-size:44px; color:var(--blue); margin:36px 0 14px; line-height:1.3;">XÂY DỰNG HỆ THỐNG PHÁT HIỆN TIN GIẢ<br>VỀ LỊCH SỬ VIỆT NAM<br>DỰA TRÊN TÀI LIỆU TRUNG HỌC PHỔ THÔNG</h1>
+  <div style="font-size:22px; color:var(--ink); margin-top:10px;">Hệ thống <b>Facet Graph RAG</b> — kiểm chứng có bằng chứng và lời giải thích</div>
+  <div style="margin-top:44px; font-size:20px;">
+    <b>Nguyễn Duy Ân</b> — 22127006 &nbsp;·&nbsp; <b>Đỗ Lê Khoa</b> — 22127195<br>
+    <span style="color:var(--mut); font-size:18px;">GVHD: TS. Lê Thanh Tùng · ThS. Văn Chí Nam</span>
+  </div>
+</section>
+
+<!-- ===== 2. BÀI TOÁN ===== -->
+<section class="slide">
+  <div class="head"><h2>Bài toán</h2><div class="sub">Kiểm chứng nhận định lịch sử dựa trên bằng chứng</div></div>
+  <div class="cols">
+    <div class="col">
+      <div class="box g" style="margin-bottom:18px;">
+        <h3>Đầu vào</h3>
+        <div style="font-size:19px;">Một nhận định lịch sử tiếng Việt<br>
+        <i style="color:var(--mut); font-size:17px;">"Pháp khai thác thuộc địa lần 2 tại Đông Dương, chủ yếu ở Campuchia, 1910–1955"</i></div>
+      </div>
+      <div class="box b">
+        <h3>Đầu ra — đủ 3 thành phần</h3>
+        <ul style="font-size:19px; line-height:1.7; padding-left:22px;">
+          <li>Nhãn <b style="color:var(--green)">đúng</b> / <b style="color:var(--red)">sai</b></li>
+          <li>Bằng chứng trích từ SGK Lịch sử 10–12</li>
+          <li>Giải thích: <b>khía cạnh nào sai</b> (thời gian, nơi chốn…)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="box o" style="height:100%;">
+        <h3>Vì sao khó?</h3>
+        <ul class="big" style="font-size:20px;">
+          <li>Ranh giới đúng–sai nằm ở <b>chi tiết rất nhỏ</b>: lệch 1 năm, tráo 1 địa danh</li>
+          <li>LLM tự trả lời sẽ <b>ảo giác</b> và không dẫn nguồn được</li>
+          <li>Ràng buộc: lúc suy luận <b>chỉ có câu nhận định</b> — kết luận phải neo vào nguồn chuẩn</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>2/15</span></div>
+</section>
+
+<!-- ===== 3. ĐÓNG GÓP ===== -->
+<section class="slide">
+  <div class="head"><h2>Đóng góp chính</h2></div>
+  <ul class="big">
+    <li><b>Bộ dữ liệu</b> kiểm chứng lịch sử Việt Nam: <b>11.344 nhận định</b> (SGK + VNHSGE + VMLU), mỗi câu gắn nhãn & bằng chứng tham chiếu</li>
+    <li><b>Cơ sở tri thức hai lớp</b> từ SGK 10–12: 540 đoạn văn + đồ thị tri thức <b>3.599 thực thể / 4.867 quan hệ có kiểu</b>, truy vết được về nguồn</li>
+    <li><b>Facet Graph RAG</b>: truy xuất Hybrid + kênh đồ thị qua <b>phân rã 9 khía cạnh</b> → nhãn + bằng chứng + giải thích khía cạnh sai</li>
+    <li><b>Quy trình đánh giá nhiều tầng</b>: chống rò rỉ dữ liệu sinh, oracle định trần, kiểm định thống kê cho mọi so sánh</li>
+  </ul>
+  <div class="kpi" style="margin-top:26px;">
+    <div class="box"><div class="n">81,46%</div><div class="t">Accuracy — toàn bộ 11.344 câu</div></div>
+    <div class="box"><div class="n">79,36%</div><div class="t">Macro F1 — recall 2 nhãn cân bằng</div></div>
+    <div class="box"><div class="n">98,5%</div><div class="t">kết quả có trích dẫn bằng chứng hợp lệ</div></div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>3/15</span></div>
+</section>
+
+<!-- ===== 4. DỮ LIỆU ===== -->
+<section class="slide">
+  <div class="head"><h2>Dữ liệu</h2><div class="sub">Tự xây dựng từ ba nguồn</div></div>
+  <div class="cols">
+    <div class="col">
+      <table>
+        <tr><th class="l" style="text-align:left">Thành phần</th><th>Số lượng</th></tr>
+        <tr><td class="l">Nhận định sau làm sạch</td><td><b>11.344</b></td></tr>
+        <tr><td class="l">— nhãn đúng / sai</td><td>3.514 / 7.830</td></tr>
+        <tr><td class="l">— sinh từ SGK / chuyển thể đề thi</td><td>34% / 66%</td></tr>
+        <tr><td class="l">Đoạn văn corpus (SGK 10–12)</td><td>540</td></tr>
+        <tr><td class="l">Thực thể chuẩn / bí danh</td><td>3.599 / 3.742</td></tr>
+        <tr><td class="l">Quan hệ có kiểu (8 loại)</td><td>4.867</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <div class="box" style="margin-bottom:16px;">
+        <h3>Quy trình xây dựng</h3>
+        <div style="font-size:18px; line-height:1.7;">Sinh nhận định từ nội dung SGK · chuyển câu trắc nghiệm (VNHSGE, VMLU) thành câu khẳng định · kiểm định <b>biểu quyết đa mô hình</b> + rà soát thủ công</div>
+      </div>
+      <div class="box o">
+        <h3>Hai tập đánh giá</h3>
+        <div style="font-size:18px; line-height:1.7;"><b>Cân bằng 2.000 câu</b> (mức nền 50%) — so sánh các phương pháp<br><b>Toàn bộ 11.344 câu</b> (mức nền 69%) — kết quả chính thức</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>4/15</span></div>
+</section>
+
+<!-- ===== 5. KIẾN TRÚC ===== -->
+<section class="slide">
+  <div class="head"><h2>Kiến trúc hệ thống</h2><div class="sub">Hai kênh bằng chứng — một lần kiểm chứng</div></div>
+  <svg viewBox="0 0 1150 380" style="width:100%; flex:1;">
+    <defs><marker id="a2" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#475569"/></marker></defs>
+    <rect x="10" y="130" width="130" height="70" rx="14" fill="#dcfce7" stroke="#4ade80"/><text x="75" y="160" font-size="16" text-anchor="middle" font-weight="700">Nhận định</text><text x="75" y="180" font-size="13" text-anchor="middle">cần kiểm chứng</text>
+    <rect x="220" y="40" width="250" height="80" rx="8" fill="#f8fafc" stroke="#94a3b8"/><text x="345" y="70" font-size="16" text-anchor="middle" font-weight="700">Truy xuất Hybrid</text><text x="345" y="92" font-size="14" text-anchor="middle">BM25 ∥ BGE-M3 → RRF → 5 đoạn</text>
+    <rect x="220" y="210" width="250" height="90" rx="8" fill="#f8fafc" stroke="#94a3b8"/><text x="345" y="240" font-size="16" text-anchor="middle" font-weight="700">Phân rã 9 khía cạnh <tspan fill="#6d28d9">· LLM</tspan></text><text x="345" y="262" font-size="13.5" text-anchor="middle">person · time · place · event · result …</text><text x="345" y="282" font-size="13.5" text-anchor="middle">→ khớp vào nút đồ thị</text>
+    <rect x="530" y="210" width="260" height="90" rx="8" fill="#f8fafc" stroke="#94a3b8"/><text x="660" y="240" font-size="16" text-anchor="middle" font-weight="700">Truy xuất đồ thị</text><text x="660" y="262" font-size="13.5" text-anchor="middle">mention · quan hệ 1-hop · chỉ mục năm</text><text x="660" y="282" font-size="13.5" text-anchor="middle">rerank heuristic → 3 đoạn bổ trợ</text>
+    <rect x="620" y="40" width="230" height="80" rx="8" fill="#fff7ed" stroke="#fb923c"/><text x="735" y="70" font-size="16" text-anchor="middle" font-weight="700">Hợp nhất 5 + 3</text><text x="735" y="92" font-size="14" text-anchor="middle">+ Smart crop 1.400 ký tự</text>
+    <rect x="920" y="40" width="200" height="80" rx="8" fill="#f8fafc" stroke="#94a3b8"/><text x="1020" y="70" font-size="16" text-anchor="middle" font-weight="700">Gemini verify <tspan fill="#6d28d9">· LLM</tspan></text><text x="1020" y="92" font-size="14" text-anchor="middle" fill="#b91c1c" font-weight="600">1 lần gọi duy nhất</text>
+    <rect x="880" y="230" width="260" height="110" rx="10" fill="#dbeafe" stroke="#60a5fa"/><text x="1010" y="258" font-size="15" text-anchor="middle" font-weight="700">KẾT QUẢ</text><text x="898" y="282" font-size="13.5">• Nhãn + độ tin cậy   • Bằng chứng E1…E8</text><text x="898" y="304" font-size="13.5">• Khía cạnh sai   • Lời giải thích</text>
+    <path d="M 140 165 H 180 V 80 H 216" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#a2)"/>
+    <path d="M 140 165 H 180 V 255 H 216" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#a2)"/>
+    <line x1="470" y1="255" x2="526" y2="255" stroke="#475569" stroke-width="1.8" marker-end="url(#a2)"/>
+    <path d="M 470 80 H 616" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#a2)"/>
+    <path d="M 790 255 H 820 V 100 h -2" fill="none" stroke="#475569" stroke-width="1.8"/>
+    <path d="M 820 100 H 735 V 124" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#a2)"/>
+    <line x1="850" y1="80" x2="916" y2="80" stroke="#475569" stroke-width="1.8" marker-end="url(#a2)"/>
+    <path d="M 1020 120 V 226" fill="none" stroke="#475569" stroke-width="1.8" marker-end="url(#a2)"/>
+  </svg>
+  <div class="note">Đồ thị đóng vai <b>bổ trợ</b> (bổ sung, không thay thế văn bản) · toàn bộ tầng truy xuất tất định, tái lập được</div>
+  <div class="foot"><span>Facet Graph RAG</span><span>5/15</span></div>
+</section>
+
+<!-- ===== 6. FACET ===== -->
+<section class="slide">
+  <div class="head"><h2>Phân rã khía cạnh (facet)</h2><div class="sub">Cầu nối nhận định ↔ đồ thị · khung của lời giải thích</div></div>
+  <div class="quote" style="margin-bottom:22px;">"Pháp khai thác thuộc địa lần 2 tại Đông Dương, chủ yếu ở <b style="color:var(--red)">Campuchia</b>, từ <b style="color:var(--red)">1910</b> tới <b style="color:var(--red)">1955</b>"</div>
+  <div class="cols">
+    <div class="col">
+      <table>
+        <tr><th>Khía cạnh</th><th>Giá trị</th></tr>
+        <tr><td>tổ chức</td><td class="l">thực dân Pháp</td></tr>
+        <tr><td>sự kiện</td><td class="l">khai thác thuộc địa lần 2</td></tr>
+        <tr><td>nơi chốn</td><td class="l">Đông Dương, <b style="color:var(--red)">Campuchia</b></td></tr>
+        <tr><td>thời gian</td><td class="l"><b style="color:var(--red)">1910, 1955</b></td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <ul class="big" style="font-size:20px;">
+        <li>Mỗi khía cạnh khớp vào <b>đúng kiểu nút</b> đồ thị:<br><span style="font-size:17px; color:var(--mut)">bí danh → chuẩn hóa → chuỗi con → chỉ mục năm</span></li>
+        <li>Là đơn vị của <b>lời giải thích</b>: hệ chỉ ra <i>khía cạnh nào</i> sai</li>
+        <li>Kế thừa hướng phân rã claim (FactScore, ProgramFC) — khác: phân rã <b>có kiểu</b>, ánh xạ đồ thị</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>6/15</span></div>
+</section>
+
+<!-- ===== 7. SMART CROP ===== -->
+<section class="slide">
+  <div class="head"><h2>Smart crop</h2><div class="sub">Cải tiến đóng góp lớn nhất — trình bày bằng chứng quan trọng ngang truy xuất</div></div>
+  <div class="box o" style="margin-bottom:20px; font-size:19px;">
+    <b>Vấn đề:</b> đoạn SGK dài trung vị 1.812 ký tự, ngân sách 1.400/đoạn → cắt đầu đoạn làm <b style="color:var(--red)">34% bằng chứng truy xuất đúng bị vứt mất phần chứa đáp án</b>
+  </div>
+  <svg viewBox="0 0 1000 190" style="width:88%; margin:0 auto;">
+    <rect x="20" y="10" width="960" height="42" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="500" y="37" font-size="16" text-anchor="middle" fill="#475569">đoạn văn 1.812 ký tự …………………………… <tspan font-weight="700" fill="#15803d">« đáp án nằm ở đây »</tspan></text>
+    <rect x="20" y="72" width="700" height="42" rx="6" fill="#fee2e2" stroke="#f87171"/>
+    <text x="360" y="99" font-size="16" text-anchor="middle" fill="#b91c1c">cắt đầu đoạn (1.400): mất đáp án ✗</text>
+    <rect x="280" y="134" width="700" height="42" rx="6" fill="#dcfce7" stroke="#4ade80"/>
+    <text x="630" y="161" font-size="16" text-anchor="middle" fill="#15803d">smart crop: cửa sổ trùng từ vựng với claim nhiều nhất ✓</text>
+  </svg>
+  <div class="kpi" style="margin-top:22px;">
+    <div class="box"><div class="n">59,5% → 85,5%</div><div class="t">bằng chứng vàng hiện diện trong ngữ cảnh</div></div>
+    <div class="box"><div class="n">≈ 0</div><div class="t">chi phí (so trùng từ vựng, tất định)</div></div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>7/15</span></div>
+</section>
+
+<!-- ===== 8. THIẾT LẬP THỰC NGHIỆM ===== -->
+<section class="slide">
+  <div class="head"><h2>Thiết lập thực nghiệm</h2></div>
+  <div class="cols">
+    <div class="col">
+      <h3>5 cấu hình so sánh + oracle</h3>
+      <ul style="font-size:19px; line-height:1.8; padding-left:24px;">
+        <li>LLM-only (không truy xuất)</li>
+        <li>BM25 · Dense (BGE-M3) · Hybrid — top-5</li>
+        <li><b>Facet Graph RAG</b> (5 văn bản + 3 đồ thị)</li>
+        <li style="color:var(--mut)">Oracle: bằng chứng vàng — <i>chẩn đoán trần</i></li>
+      </ul>
+      <div class="box b" style="margin-top:14px; font-size:17px;">Cùng tập câu, cùng bộ kiểm chứng (Gemini 2.5 Flash, temperature 0), cùng cách trình bày bằng chứng → khác biệt quy về <b>nguồn bằng chứng</b></div>
+    </div>
+    <div class="col">
+      <h3>Tiêu chí</h3>
+      <ul style="font-size:19px; line-height:1.8; padding-left:24px;">
+        <li><b>Truy xuất:</b> tỷ lệ bao phủ bằng chứng vàng (hit rate)</li>
+        <li><b>Phân loại:</b> accuracy, macro F1, recall từng nhãn, <b>kiểm định McNemar</b> cho so sánh cặp</li>
+        <li><b>Giải thích:</b> chỉ số cấu trúc + phân tích định tính</li>
+      </ul>
+      <div class="box" style="margin-top:14px; font-size:17px;">Nguyên tắc: trường sinh dữ liệu (tri thức gốc, nhãn, bằng chứng vàng) <b>không bao giờ</b> vào truy vấn hay prompt</div>
+    </div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>8/15</span></div>
+</section>
+
+<!-- ===== 9. KẾT QUẢ TRUY XUẤT ===== -->
+<section class="slide">
+  <div class="head"><h2>Kết quả truy xuất</h2><div class="sub">Tập cân bằng 2.000 câu — bao phủ bằng chứng vàng</div></div>
+  <table style="font-size:20px;">
+    <tr><th style="text-align:left">Phương pháp</th><th>Số bằng chứng</th><th>Hit rate</th></tr>
+    <tr><td class="l">Dense (BGE-M3)</td><td>5</td><td>82,4%</td></tr>
+    <tr><td class="l">BM25</td><td>5</td><td>90,1%</td></tr>
+    <tr><td class="l">Hybrid</td><td>5</td><td>90,5%</td></tr>
+    <tr class="pro"><td class="l">Facet Graph RAG (đề xuất)</td><td>8</td><td>91,3%</td></tr>
+    <tr><td class="l" style="font-style:italic">Hybrid top-8 — đối chứng cùng ngân sách</td><td><i>8</i></td><td><i>92,9%</i></td></tr>
+  </table>
+  <ul class="big" style="margin-top:24px; font-size:20px;">
+    <li>BM25 vượt Dense 7,7 điểm — tên riêng & niên đại là từ khóa mạnh của miền lịch sử</li>
+    <li>Đối chứng cùng ngân sách: xét riêng độ bao phủ, đồ thị <b>không</b> vượt việc lấy thêm văn bản → giá trị của nó nằm ở <b>nhóm câu cụ thể được cứu</b> + cấu trúc giải thích</li>
+  </ul>
+  <div class="foot"><span>Facet Graph RAG</span><span>9/15</span></div>
+</section>
+
+<!-- ===== 10. KẾT QUẢ PHÂN LOẠI ===== -->
+<section class="slide">
+  <div class="head"><h2>Kết quả phân loại</h2><div class="sub">Tập cân bằng 2.000 câu (mức nền 50%)</div></div>
+  <table style="font-size:20px;">
+    <tr><th style="text-align:left">Phương pháp</th><th>Accuracy</th><th>Macro F1</th><th>Recall đúng</th><th>Recall sai</th></tr>
+    <tr><td class="l">LLM-only (không truy xuất)</td><td>81,65%</td><td>81,65%</td><td>80,2%</td><td>83,1%</td></tr>
+    <tr><td class="l">Dense (BGE-M3)</td><td>84,60%</td><td>84,56%</td><td>79,0%</td><td>90,2%</td></tr>
+    <tr><td class="l">BM25</td><td>87,45%</td><td>87,45%</td><td>85,6%</td><td>89,3%</td></tr>
+    <tr><td class="l">Hybrid</td><td><b>88,10%</b></td><td><b>88,10%</b></td><td>86,1%</td><td><b>90,1%</b></td></tr>
+    <tr class="pro"><td class="l">Facet Graph RAG (đề xuất)</td><td>87,05%</td><td>87,05%</td><td><b>87,6%</b></td><td>86,5%</td></tr>
+  </table>
+  <ul class="big" style="margin-top:20px; font-size:19px;">
+    <li>Mọi cấu hình truy xuất vượt LLM-only với <b>p&lt;0,001</b> — bằng chứng SGK tạo ra giá trị thật (+6,45 điểm)</li>
+    <li>Đề xuất ⇄ Hybrid: chênh 1,05 điểm <b>không có ý nghĩa thống kê</b> (p=0,078) — đổi lại: recall nhận định đúng cao nhất + duy nhất có giải thích khía cạnh</li>
+  </ul>
+  <div class="foot"><span>Facet Graph RAG</span><span>10/15</span></div>
+</section>
+
+<!-- ===== 11. KẾT QUẢ FULL ===== -->
+<section class="slide">
+  <div class="head"><h2>Kết quả chính thức — toàn bộ dữ liệu</h2><div class="sub">11.344 nhận định (mức nền 69%)</div></div>
+  <div class="kpi" style="margin-bottom:24px;">
+    <div class="box"><div class="n">81,46%</div><div class="t">Accuracy</div></div>
+    <div class="box"><div class="n">79,36%</div><div class="t">Macro F1</div></div>
+    <div class="box"><div class="n">80,1 / 82,1</div><div class="t">Recall đúng / sai — cân bằng</div></div>
+    <div class="box"><div class="n">99,97%</div><div class="t">phản hồi hợp lệ (3 lỗi / 11.344)</div></div>
+  </div>
+  <div class="cols">
+    <div class="col"><div class="box g" style="height:100%;">
+      <h3>Lời giải thích (chỉ số cấu trúc)</h3>
+      <div style="font-size:19px; line-height:1.9;">98,6% có trích dẫn bằng chứng<br>98,5% toàn bộ trích dẫn hợp lệ<br>97,5% dự đoán "sai" chỉ đích danh khía cạnh</div>
+    </div></div>
+    <div class="col"><div class="box" style="height:100%;">
+      <h3>Ví dụ đầu ra thật</h3>
+      <div style="font-size:16.5px; line-height:1.6;"><i>"…chủ yếu ở Campuchia, 1910–1955"</i><br>
+      → <b style="color:var(--red)">SAI</b> (0,9) · khía cạnh: <b>thời gian, nơi chốn</b><br>
+      "E1, E2 cho thấy chương trình diễn ra <b>1919–1929</b>… tập trung ở <b>Việt Nam</b>, không phải Campuchia"</div>
+    </div></div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>11/15</span></div>
+</section>
+
+<!-- ===== 12. PHÂN TÍCH THÀNH PHẦN ===== -->
+<section class="slide">
+  <div class="head"><h2>Phân tích thành phần</h2><div class="sub">Oracle định trần → mọi cải tiến đều có chẩn đoán trước</div></div>
+  <div class="bar"><div class="lbl">Cấu hình ban đầu (4 đoạn, cắt 650 ký tự)</div><div class="tr"><div class="fill" style="width:71.7%; background:#94a3b8;">71,70%</div></div></div>
+  <div class="bar"><div class="lbl">+ đủ bằng chứng · năm · chuỗi con · phạt hub</div><div class="tr"><div class="fill" style="width:79.8%; background:#60a5fa;">79,83%</div></div></div>
+  <div class="bar"><div class="lbl">+ smart crop · hợp nhất 5+3</div><div class="tr"><div class="fill" style="width:87.1%;">87,05%</div></div></div>
+  <div class="bar"><div class="lbl">Oracle — trần của bộ kiểm chứng</div><div class="tr"><div class="fill" style="width:99.8%; background:#15803d;">99,80%</div></div></div>
+  <ul class="big" style="margin-top:18px; font-size:19px;">
+    <li>Oracle 99,8% ⇒ <b>nút thắt nằm ở bằng chứng, không phải LLM</b></li>
+    <li>Trình bày bằng chứng đóng góp <b>+15,35 điểm</b> — recall nhãn đúng 49,2% → 87,6%</li>
+    <li>Cross-encoder (+0,2) và mở rộng ngân sách (+0,9, n.s.) ⇒ tầng truy xuất đã <b>bão hòa</b> với kho tài liệu hiện tại</li>
+  </ul>
+  <div class="foot"><span>Facet Graph RAG</span><span>12/15</span></div>
+</section>
+
+<!-- ===== 13. VAI TRÒ ĐỒ THỊ ===== -->
+<section class="slide">
+  <div class="head"><h2>Vai trò kênh đồ thị</h2><div class="sub">So sánh cặp với Hybrid thuần văn bản — cùng 2.000 câu</div></div>
+  <div class="cols">
+    <div class="col"><div class="box g" style="height:100%;">
+      <h3>Đồ thị cứu</h3>
+      <div style="font-size:42px; font-weight:800; color:var(--green)">54 câu</div>
+      <div style="font-size:18px; line-height:1.7; margin-top:8px;">45/54 là nhận định <b>đúng</b> thiếu bằng chứng văn bản<br><b>28 câu</b> kết luận đúng <i>chỉ nhờ</i> bằng chứng đồ thị</div>
+    </div></div>
+    <div class="col"><div class="box" style="height:100%; background:#fef2f2; border-color:#fca5a5;">
+      <h3>Đồ thị làm hỏng</h3>
+      <div style="font-size:42px; font-weight:800; color:var(--red)">75 câu</div>
+      <div style="font-size:18px; line-height:1.7; margin-top:8px;">45/75 là nhận định <b>sai</b>: đoạn đúng chủ đề vô tình "ủng hộ" claim sai</div>
+    </div></div>
+  </div>
+  <div class="quote" style="margin-top:22px; font-size:19px;">⇒ Giá trị đồ thị mang tính <b>bổ trợ có điều kiện</b>: phát huy khi văn bản thiếu, gây nhiễu khi văn bản đủ. Tính gộp −1,05 điểm (không có ý nghĩa, p=0,078). Hướng cải tiến: <b>hợp nhất thích ứng</b> — chỉ kích hoạt khi tín hiệu văn bản yếu.</div>
+  <div class="foot"><span>Facet Graph RAG</span><span>13/15</span></div>
+</section>
+
+<!-- ===== 14. LỖI & GIỚI HẠN ===== -->
+<section class="slide">
+  <div class="head"><h2>Phân tích lỗi & giới hạn</h2><div class="sub">Mọi khoảng cách hiệu năng đều quy được về nguồn cụ thể</div></div>
+  <div class="cols">
+    <div class="col">
+      <table style="font-size:18px;">
+        <tr><th style="text-align:left">Nhóm nhận định</th><th>Accuracy</th><th>Hit rate</th></tr>
+        <tr><td class="l">Sinh từ SGK (3.884)</td><td>85,04%</td><td>86,6%</td></tr>
+        <tr><td class="l">Chuyển thể đề thi (7.457)</td><td>79,59%</td><td>72,9%</td></tr>
+      </table>
+      <div class="box o" style="margin-top:14px; font-size:17px;">Khía cạnh lỗi hàng đầu: <b>thời gian (227)</b> · kết quả (163) · hành động (162) · nơi chốn (151)</div>
+    </div>
+    <div class="col">
+      <ul style="font-size:19px; line-height:1.75; padding-left:24px;">
+        <li><b>~10%</b> câu có bằng chứng bị <b>chia cắt giữa 2 đoạn</b> hoặc mất do OCR — không tầng nào phía sau cứu được</li>
+        <li><b>Nhiễu ngữ cảnh:</b> có bằng chứng vàng trong context vẫn chỉ ~85% (vs oracle 99,8%)</li>
+        <li>Chưa có nhãn "không đủ thông tin"; phụ thuộc LLM thương mại</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>14/15</span></div>
+</section>
+
+<!-- ===== 15. KẾT LUẬN ===== -->
+<section class="slide">
+  <div class="head"><h2>Kết luận & hướng phát triển</h2></div>
+  <div class="cols">
+    <div class="col">
+      <h3>Đã hoàn thành (3/3 mục tiêu)</h3>
+      <ul style="font-size:19px; line-height:1.8; padding-left:24px;">
+        <li>Bộ dữ liệu 11.344 nhận định + cơ sở tri thức 2 lớp</li>
+        <li>Hệ thống đủ 3 đầu ra: <b>81,46% / F1 79,36</b> toàn bộ dữ liệu</li>
+        <li>Quy trình đánh giá nhiều tầng — mọi kết luận và giới hạn đều <b>định lượng được</b></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Hướng phát triển (theo tác động)</h3>
+      <ul style="font-size:19px; line-height:1.8; padding-left:24px;">
+        <li>Tái cấu trúc kho tài liệu: chunk chồng lấn + sửa OCR (→ 10% tổn thất)</li>
+        <li>Tầng chọn lọc bằng chứng (→ nhiễu ngữ cảnh 85 vs 99,8)</li>
+        <li>Hợp nhất thích ứng kênh đồ thị · nhãn "không đủ thông tin" · model mã nguồn mở</li>
+      </ul>
+    </div>
+  </div>
+  <div style="text-align:center; margin-top:34px;">
+    <div style="font-size:30px; font-weight:800; color:var(--blue);">Trân trọng cảm ơn quý Thầy Cô!</div>
+    <div style="font-size:18px; color:var(--mut); margin-top:8px;">Nhóm sẵn sàng trả lời câu hỏi — mã nguồn, dữ liệu và kết quả từng câu nộp kèm, tái lập được</div>
+  </div>
+  <div class="foot"><span>Facet Graph RAG</span><span>15/15</span></div>
+</section>
+
+</div>
+<div class="nav">← → để chuyển trang</div>
+<script>
+  const s = document.querySelectorAll('.slide'); let i = 0;
+  function show(n){ s[i].classList.remove('active'); i=(n+s.length)%s.length; s[i].classList.add('active'); }
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown') show(i+1);
+    if(e.key==='ArrowLeft'||e.key==='PageUp') show(i-1);
+  });
+  document.getElementById('deck').addEventListener('click', ()=>show(i+1));
+</script>
+</body>
+</html>

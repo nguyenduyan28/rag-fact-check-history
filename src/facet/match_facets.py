@@ -30,6 +30,15 @@ def match_facet_value(
             matches.extend(graph_index.match_year(year, max_matches=max_matches))
     if facet_type not in {"quantity", "action", "result"}:
         matches.extend(graph_index.match_aliases(value, graph_types=graph_types or None, max_matches=max_matches))
+        if not matches and config.get("matching", {}).get("use_substring_match", False):
+            matches.extend(
+                graph_index.match_aliases_substring(
+                    value,
+                    graph_types=graph_types or None,
+                    max_matches=max_matches,
+                    min_chars=int(config.get("matching", {}).get("substring_min_chars", 6)),
+                )
+            )
     deduped = []
     seen = set()
     for match in matches:

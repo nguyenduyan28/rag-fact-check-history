@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from src.common.io import load_json, load_yaml, project_path, save_json
+from src.common.normalize import extract_years, tokenize
 from src.facet.extract_claim_facets import load_dotenv
 
 
@@ -139,19 +140,50 @@ def strip_code_fence(text: str) -> str:
     return text.strip()
 
 
+def salvage_verification_fields(text: str) -> dict | None:
+    """Last-resort recovery for malformed single-item verifier JSON
+    (unescaped quotes/newlines in reasoning, output truncated at max_tokens)."""
+    label_match = re.search(r'"label"\s*:\s*"(real|fake)"', text)
+    if not label_match:
+        return None
+    confidence_match = re.search(r'"confidence"\s*:\s*([0-9.]+)', text)
+    evidence_ids = re.findall(r'"(E\d+)"', text)
+    facets_match = re.search(r'"wrong_facets"\s*:\s*\[([^\]]*)\]', text)
+    wrong_facets = re.findall(r'"([a-z_]+)"', facets_match.group(1)) if facets_match else []
+    return {
+        "label": label_match.group(1),
+        "confidence": float(confidence_match.group(1)) if confidence_match else 0.0,
+        "evidence_ids": list(dict.fromkeys(evidence_ids)),
+        "wrong_facets": wrong_facets,
+        "reasoning": "[salvaged from malformed JSON]",
+    }
+
+
 def parse_json_object(text: str) -> dict:
     cleaned = strip_code_fence(text)
-    try:
-        parsed = json.loads(cleaned)
-    except json.JSONDecodeError:
-        start = cleaned.find("{")
-        end = cleaned.rfind("}")
-        if start < 0 or end <= start:
-            raise
-        parsed = json.loads(cleaned[start : end + 1])
-    if not isinstance(parsed, dict):
-        raise ValueError("Verifier response must be a JSON object")
-    return parsed
+    attempts = [cleaned]
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start >= 0 and end > start:
+        attempts.append(cleaned[start : end + 1])
+    if start >= 0:
+        # truncated-output repair: close a dangling string/object
+        tail = cleaned[start:]
+        attempts.extend([tail + '"}', tail + "}", tail + '"]}', tail + "]}"])
+    last_error: Exception | None = None
+    for attempt in attempts:
+        try:
+            parsed = json.loads(attempt, strict=False)
+        except json.JSONDecodeError as exc:
+            last_error = exc
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+        last_error = ValueError("Verifier response must be a JSON object")
+    salvaged = salvage_verification_fields(cleaned)
+    if salvaged is not None:
+        return salvaged
+    raise last_error if last_error else ValueError("Unparseable verifier response")
 
 
 def select_balanced(rows: list[dict], limit: int | None) -> list[dict]:
@@ -164,6 +196,24 @@ def select_balanced(rows: list[dict], limit: int | None) -> list[dict]:
     return selected[:limit]
 
 
+def crop_text_to_claim(text: str, claim: str, max_chars: int) -> str:
+    """Pick the max_chars window of `text` with the highest claim-token overlap,
+    instead of blindly keeping the head of the chunk."""
+    if len(text) <= max_chars:
+        return text
+    claim_tokens = {token for token in tokenize(claim) if len(token) >= 3}
+    if not claim_tokens:
+        return text[:max_chars]
+    step = max(1, max_chars // 2)
+    best_start, best_score = 0, -1
+    for start in range(0, len(text) - max_chars + step, step):
+        window = text[start : start + max_chars]
+        score = len(claim_tokens & {token for token in tokenize(window) if len(token) >= 3})
+        if score > best_score:
+            best_start, best_score = start, score
+    return text[best_start : best_start + max_chars]
+
+
 def build_evidence_context(
     item: dict,
     config: dict,
@@ -173,37 +223,73 @@ def build_evidence_context(
     verifier = config.get("verifier", {})
     top_k = top_k_override if top_k_override is not None else int(verifier.get("top_k_evidence", 6))
     max_chars = max_chars_override if max_chars_override is not None else int(verifier.get("max_chars_per_evidence", 900))
+    show_years = bool(verifier.get("show_years", False))
     chunks = []
     for idx, evidence in enumerate(item.get("top_evidence", [])[:top_k], start=1):
         scores = evidence.get("scores", {})
         facet_hits = evidence.get("facet_hits", [])
         relation_hits = evidence.get("relation_hits", [])
-        chunks.append(
-            "\n".join(
-                [
-                    f"[E{idx}] chunk_id={evidence.get('chunk_id')} book={evidence.get('book')} pages={evidence.get('pages')}",
-                    f"section={evidence.get('section')}",
-                    f"scores={json.dumps(scores, ensure_ascii=False)}",
-                    f"facet_hits={json.dumps(facet_hits[:8], ensure_ascii=False)}",
-                    f"relation_hits={json.dumps(relation_hits[:6], ensure_ascii=False)}",
-                    str(evidence.get("text", ""))[:max_chars],
-                ]
-            )
-        )
+        lines = [
+            f"[E{idx}] chunk_id={evidence.get('chunk_id')} book={evidence.get('book')} pages={evidence.get('pages')}",
+            f"section={evidence.get('section')}",
+            f"scores={json.dumps(scores, ensure_ascii=False)}",
+            f"facet_hits={json.dumps(facet_hits[:8], ensure_ascii=False)}",
+            f"relation_hits={json.dumps(relation_hits[:6], ensure_ascii=False)}",
+        ]
+        if show_years:
+            evidence_years = sorted(
+                set(evidence.get("years", []) or []) | extract_years(str(evidence.get("text", "")))
+            )[:12]
+            lines.append(f"years={evidence_years}")
+        evidence_text = str(evidence.get("text", ""))
+        if bool(verifier.get("smart_crop", False)):
+            lines.append(crop_text_to_claim(evidence_text, str(item.get("claim", "")), max_chars))
+        else:
+            lines.append(evidence_text[:max_chars])
+        chunks.append("\n".join(lines))
     return "\n\n".join(chunks)
 
 
+def build_llm_only_prompt(item: dict) -> str:
+    """Baseline khong truy xuat: model tra loi bang kien thuc tham so."""
+    return f"""Bạn là chuyên gia lịch sử Việt Nam.
+
+Nhiệm vụ: dựa trên kiến thức của bạn (KHÔNG có tài liệu tham khảo nào được cung cấp),
+hãy đánh giá nhận định sau là `real` (đúng với sự thật lịch sử) hay `fake` (có chi tiết sai).
+
+Nhận định:
+{item.get('claim', '')}
+
+Trả về JSON hợp lệ duy nhất:
+{{
+  "label": "real|fake",
+  "confidence": 0.0,
+  "evidence_ids": [],
+  "wrong_facets": [],
+  "reasoning": "lý do ngắn gọn"
+}}
+"""
+
+
 def build_prompt(item: dict, config: dict) -> str:
+    if bool(config.get("verifier", {}).get("llm_only", False)):
+        return build_llm_only_prompt(item)
     evidence_context = build_evidence_context(item, config)
     facets = item.get("facets", {})
     facet_summary = item.get("facet_summary_for_verifier", {})
+    temporal_rule = ""
+    if bool(config.get("verifier", {}).get("show_years", False)):
+        temporal_rule = (
+            "\n- Đối chiếu từng năm/mốc thời gian trong claim với các năm trong evidence:"
+            " nếu evidence nói về cùng sự kiện nhưng ghi năm khác với claim, đó là dấu hiệu mạnh của `fake`."
+        )
     return f"""Bạn là hệ thống kiểm chứng nhận định lịch sử Việt Nam.
 
 Nhiệm vụ: dựa CHỈ trên evidence được cung cấp để quyết định claim là `real` hay `fake`.
 
 Quy tắc:
 - Chọn `real` nếu evidence ủng hộ các phần chính của claim.
-- Chọn `fake` nếu evidence mâu thuẫn rõ về thời gian, địa điểm, nhân vật, tổ chức, sự kiện, số lượng, nguyên nhân hoặc kết quả.
+- Chọn `fake` nếu evidence mâu thuẫn rõ về thời gian, địa điểm, nhân vật, tổ chức, sự kiện, số lượng, nguyên nhân hoặc kết quả.{temporal_rule}
 - Nếu evidence không đủ rõ, chọn nhãn hợp lý nhất dựa trên evidence hiện có và nêu lý do ngắn gọn.
 - Chỉ thêm `insufficient_evidence` vào wrong_facets khi evidence thật sự thiếu phần quan trọng làm bạn không thể ủng hộ claim.
 - Không dùng kiến thức ngoài evidence.
@@ -216,9 +302,6 @@ Facet retrieval summary:
 
 Evidence:
 {evidence_context}
-
-Chủ đề/key:
-{item.get('key', '')}
 
 Claim:
 {item.get('claim', '')}
@@ -247,7 +330,6 @@ def build_batch_prompt(items: list[dict], config: dict) -> str:
             {
                 "ID": row_key(item),
                 "claim": item.get("claim", ""),
-                "key": item.get("key", ""),
                 "facets": item.get("facets", {}),
                 "facet_summary": item.get("facet_summary_for_verifier", {}),
                 "evidence": build_evidence_context(
@@ -617,6 +699,8 @@ def verify_batch(
     model: str,
 ) -> list[dict]:
     items = [row for _, row in batch]
+    if len(batch) == 1 and bool(config.get("verifier", {}).get("route_single_full_prompt", False)):
+        return [verify_row(row, config, provider, api_key, model) for _, row in batch]
     try:
         verified_by_id = call_model_verify_batch(items, config, provider, api_key, model)
     except Exception:

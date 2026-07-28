@@ -132,6 +132,46 @@ class GraphIndex:
                 break
         return matches
 
+    def match_aliases_substring(
+        self,
+        text: str,
+        graph_types: set[str] | None,
+        max_matches: int,
+        min_chars: int = 6,
+    ) -> list[dict]:
+        """Fallback: match when the facet text is a sub-phrase of a longer alias
+        (e.g. facet `Quốc dân Đảng` vs alias `Việt Nam Quốc dân Đảng`)."""
+        normalized = normalize_key(text)
+        if len(normalized.replace(" ", "")) < min_chars:
+            return []
+        needle = f" {normalized} "
+        matches = []
+        seen_entities = set()
+        for candidate in self.alias_candidates:
+            if graph_types and candidate.canonical_type not in graph_types:
+                continue
+            if needle not in f" {candidate.normalized_alias} ":
+                continue
+            if candidate.normalized_alias == normalized:
+                continue
+            if candidate.entity_id in seen_entities:
+                continue
+            seen_entities.add(candidate.entity_id)
+            matches.append(
+                {
+                    "node_id": candidate.entity_id,
+                    "node_name": candidate.canonical_name,
+                    "node_type": candidate.canonical_type,
+                    "matched_alias": candidate.alias,
+                    "normalized_alias": candidate.normalized_alias,
+                    "match_method": "alias_substring",
+                    "mention_count": candidate.mention_count,
+                }
+            )
+            if len(matches) >= max_matches:
+                break
+        return matches
+
     def match_year(self, year: int, max_matches: int) -> list[dict]:
         matches = []
         for node_id in sorted(self.year_to_nodes.get(year, set())):
