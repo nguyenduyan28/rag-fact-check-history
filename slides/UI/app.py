@@ -125,21 +125,37 @@ def hybrid_retrieve(claim: str, final_k: int = 5, pool: int = 20) -> list[dict]:
 
 
 def run_pipeline(claim: str) -> dict:
+    import time
+    from concurrent.futures import ThreadPoolExecutor
     cfg, gi = STATE["cfg"], STATE["gi"]
     item = {"ID": "demo", "claim": claim, "label": "", "key": "", "relevant": ""}
     use_llm = bool(STATE["openai_key"])
-    facet_row = extract_row(item, 0, gi, cfg, use_llm, STATE["openai_key"])
-    matched = match_row(facet_row, gi, cfg)
-    evidence = retrieve_row(matched, gi, cfg)
-    reranked = rerank_row(evidence, cfg)
-    text_docs = hybrid_retrieve(claim)
+    timing = {}
+    t0 = time.perf_counter()
+
+    # NHÁNH TEXT chạy song song với NHÁNH FACET->GRAPH (độc lập nhau)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        fut_text = pool.submit(lambda: (time.perf_counter(), hybrid_retrieve(claim)))
+        t = time.perf_counter()
+        facet_row = extract_row(item, 0, gi, cfg, use_llm, STATE["openai_key"])
+        timing["facet_llm"] = round(time.perf_counter() - t, 2)
+        t = time.perf_counter()
+        matched = match_row(facet_row, gi, cfg)
+        evidence = retrieve_row(matched, gi, cfg)
+        reranked = rerank_row(evidence, cfg)
+        timing["graph_local"] = round(time.perf_counter() - t, 2)
+        t_start_text, text_docs = fut_text.result()
+        timing["text_retrieval"] = round(time.perf_counter() - t_start_text, 2)
+
     fused = fuse_row({"retrieved_context": text_docs}, reranked, cfg)
 
     prompt = vf.build_prompt(fused, cfg)
     verdict, raw = None, ""
     if STATE["gemini_ok"]:
         try:
+            t = time.perf_counter()
             res = vf.call_model_verify(fused, cfg, "gemini", STATE["gemini_key"], "gemini-2.5-flash")
+            timing["verify_llm"] = round(time.perf_counter() - t, 2)
             raw = res.pop("raw_response", "")
             verdict = res
         except Exception as exc:
@@ -185,6 +201,7 @@ def run_pipeline(claim: str) -> dict:
                 "embed_model": "BAAI/bge-m3" if STATE["dense"] is not None else "(tắt — BM25 only)",
                 "prompt": prompt, "raw_response": raw},
         "verdict": verdict,
+        "timing": {**timing, "total": round(time.perf_counter() - t0, 2)},
     }
 
 
@@ -266,7 +283,7 @@ pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px;font-size:1
   </div>
   <div class="samples">Thử nhanh:
     <span onclick="fill(this)">Thực dân Pháp đã triển khai chương trình khai thác thuộc địa lần thứ hai tại Đông Dương, chủ yếu tập trung ở Campuchia, bắt đầu vào năm 1910.</span> ·
-    <span onclick="fill(this)">Tổng Bí thư Nguyễn Văn Cừ đã chủ trì Hội nghị Ban Chấp hành Trung ương Đảng diễn ra vào tháng 12 năm 1945 tại Hà Nội.</span>
+    <span onclick="fill(this)">Tổng Bí thư Nguyễn Văn Cừ đã chủ trì Hội nghị Ban Chấp hành Trung ương Đảng diễn ra vào tháng 12 năm 1945 tại Hà Nội</span>
   </div>
 
   <div class="loading" id="loading"><span class="spin"></span><span id="stage">Đang xử lý…</span></div>
@@ -341,9 +358,11 @@ function render(d){
      <span class="badge ${x.branch==='graph'?'b-graph':'b-text'}">${x.branch}</span>
      <span>${esc(x.chunk_id)}</span>${x.was_cropped?'<span class="badge b-crop">đã smart-crop</span>':''}</div>${esc(x.cropped)}</div>`).join('');
   // 6 llm
+  const tm=d.timing||{};
   document.getElementById('llminfo').innerHTML=
     `<div class="kv">Bộ kiểm chứng: <b>${d.llm.model}</b><br>Phân rã khía cạnh: <b>${d.llm.facet_model}</b></div>
-     <div class="kv">Embedding: <b>${d.llm.embed_model}</b><br>Provider: <b>${d.llm.provider}</b></div>`;
+     <div class="kv">Embedding: <b>${d.llm.embed_model}</b><br>Provider: <b>${d.llm.provider}</b></div>
+     <div class="kv" style="grid-column:1/-1">⏱ Thời gian: tách facet <b>${tm.facet_llm??'—'}s</b> ∥ truy xuất text <b>${tm.text_retrieval??'—'}s</b> · đồ thị (local) <b>${tm.graph_local??'—'}s</b> · Gemini verify <b>${tm.verify_llm??'—'}s</b> · tổng <b>${tm.total??'—'}s</b></div>`;
   document.getElementById('prompt').textContent=d.llm.prompt;
   document.getElementById('raw').textContent=d.llm.raw_response||'(không có)';
   document.querySelectorAll('.card').forEach(c=>c.style.display='block');
