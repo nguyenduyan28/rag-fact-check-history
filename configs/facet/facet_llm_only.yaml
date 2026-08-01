@@ -1,0 +1,126 @@
+paths:
+  claims: data/claims/clean_dataset.json
+  graph: data/outputs/graph/history_graph.json
+  nodes: data/outputs/graph/graph_nodes.json
+  edges: data/outputs/graph/graph_edges.json
+  aliases: data/outputs/graph/entity_aliases.json
+  temporal_index: data/outputs/graph/temporal_index.json
+  text_retrieved: data/outputs/retrieved/hybrid_top5_nokey.json
+  output_dir: data/outputs/facet/nokey-opt2-2000
+  claim_facets: data/outputs/facet/full-opt2/claim_facets.json
+  facet_matches: data/outputs/facet/nokey-opt2-2000/facet_matches.json
+  facet_evidence: data/outputs/facet/nokey-opt2-2000/facet_evidence.json
+  facet_reranked: data/outputs/facet/nokey-opt-2000/facet_reranked.json
+  hybrid_facet_reranked: data/outputs/facet/nokey-opt2-2000/hybrid_facet_reranked.json
+  hybrid_fusion_report: data/outputs/facet/nokey-opt2-2000/hybrid_facet_fusion_report.md
+  facet_verified: data/outputs/facet/nokey-opt2-2000/facet_verified.json
+  hybrid_facet_verified: data/outputs/facet/nokey-opt2-2000/hybrid_facet_verified.json
+  run_report: data/outputs/facet/nokey-opt2-2000/facet_run_report.json
+  eda_report: data/outputs/facet/nokey-opt2-2000/facet_eda_report.md
+  accuracy_report: data/outputs/facet/nokey-opt2-2000/facet_accuracy_report.md
+  hybrid_accuracy_report: data/outputs/facet/nokey-opt2-2000/hybrid_facet_accuracy_report.md
+  verify_output_root: data/outputs/facet/nokey-opt2-2000/verify
+run:
+  limit: 200
+  seed: 42
+  query_fields:
+  - claim
+facets:
+  types:
+  - person
+  - organization
+  - event
+  - place
+  - time
+  - concept
+  - quantity
+  - action
+  - result
+  graph_type_map:
+    person:
+    - Person
+    organization:
+    - Organization
+    event:
+    - Event
+    place:
+    - Place
+    time:
+    - Time
+    concept:
+    - Concept
+extractor:
+  use_llm: false
+  fallback_on_llm_error: false
+  provider: openai
+  model_env: OPENAI_MODEL
+  default_model: gpt-4o-mini
+  temperature: 0.0
+  max_tokens: 500
+  request_timeout_seconds: 120
+  retry_attempts: 2
+  retry_sleep_seconds: 2
+  batch_size: 10
+  workers: 1
+  checkpoint_every: 10
+  max_facets_per_type: 8
+matching:
+  use_exact_alias: true
+  use_normalized_alias: true
+  use_year_index: true
+  use_substring_match: true
+  substring_min_chars: 6
+  use_embedding_fallback: false
+  min_alias_chars: 4
+  max_alias_matches_per_text: 10
+  max_matches_per_facet: 5
+evidence:
+  graph_hops: 1
+  max_chunks_per_facet: 5
+  max_chunks_per_claim: 12
+  max_chunk_chars: 1400
+  include_neighbor_relations:
+  - PARTICIPATED_IN
+  - OCCURRED_AT
+  - LOCATED_IN
+  - RELATED_TO
+  - CAUSES
+  - RESULTS_IN
+  - BEFORE
+  - AFTER
+rerank:
+  top_k: 8
+  facet_coverage_weight: 0.45
+  relation_weight: 0.25
+  temporal_weight: 0.2
+  text_overlap_weight: 0.1
+  hub_penalty_weight: 0.15
+fusion:
+  text_top_k: 5
+  graph_top_k: 3
+  max_total_evidence: 8
+  max_chars_per_evidence: 2400
+verifier:
+  provider: openai
+  model_env: OPENAI_MODEL
+  default_model: gpt-4o-mini
+  gemini_model_env: GEMINI_MODEL
+  gemini_default_model: gemini-2.5-flash
+  gemini_thinking_budget: 0
+  temperature: 0.0
+  max_tokens: 450
+  request_timeout_seconds: 90
+  retry_attempts: 2
+  retry_sleep_seconds: 2
+  batch_size: 5
+  batch_max_tokens_per_item: 280
+  batch_top_k_evidence: 4
+  batch_max_chars_per_evidence: 650
+  workers: 1
+  checkpoint_every: 25
+  top_k_evidence: 8
+  max_chars_per_evidence: 1400
+  route_single_full_prompt: true
+  show_years: true
+  smart_crop: true
+  llm_only: true
